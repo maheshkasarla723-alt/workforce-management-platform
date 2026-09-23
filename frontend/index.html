@@ -1,0 +1,6888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Workforce Management Platform</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, Helvetica, sans-serif;
+            background: #f4f6f9;
+            color: #222;
+        }
+
+        .container {
+            width: 95%;
+            max-width: 1400px;
+            margin: 30px auto;
+        }
+
+        h1, h2 {
+            color: #12395b;
+        }
+
+        .section {
+            background: white;
+            padding: 25px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+        }
+
+        button {
+            border: none;
+            border-radius: 5px;
+            padding: 10px 16px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-success {
+            background: #16a34a;
+            color: white;
+        }
+
+        .btn-warning {
+            background: #f59e0b;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc2626;
+            color: white;
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+            color: white;
+        }
+
+        .btn-dark {
+            background: #12395b;
+            color: white;
+        }
+
+        /* NOTIFICATIONS */
+        .notification-wrapper {
+            position: relative;
+        }
+
+        .notification-btn {
+            position: relative;
+            background: #12395b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 10px 14px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            min-width: 22px;
+            height: 22px;
+            padding: 2px 6px;
+            border-radius: 50%;
+            background: #dc2626;
+            color: white;
+            font-size: 12px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notification-panel {
+            display: none;
+            background: white;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.12);
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 15px 20px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .notification-header h2 {
+            margin: 0;
+        }
+
+        .notification-list {
+            max-height: 420px;
+            overflow-y: auto;
+        }
+
+        .notification-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notification-item:last-child {
+            border-bottom: none;
+        }
+
+        .notification-item.unread {
+            background: #eff6ff;
+            border-left: 4px solid #2563eb;
+        }
+
+        .notification-title {
+            font-weight: bold;
+            color: #12395b;
+            margin-bottom: 6px;
+        }
+
+        .notification-message {
+            color: #444;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .notification-meta {
+            font-size: 12px;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .notification-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+
+        .top-bar {
+            background: white;
+            padding: 15px 20px;
+            margin-bottom: 25px;
+            border-radius: 10px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.08);
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .user-info {
+            font-weight: bold;
+            color: #12395b;
+        }
+
+        .top-controls {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        input,
+        select,
+        textarea {
+            width: 100%;
+            padding: 11px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .search-box {
+            width: 250px;
+        }
+
+        .employee-filter-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(160px, 1fr));
+            gap: 12px;
+            margin-bottom: 15px;
+        }
+
+        .employee-filter-grid .form-group {
+            margin-bottom: 0;
+        }
+
+        .employee-filter-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .employee-pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .employee-page-info {
+            color: #555;
+            font-weight: bold;
+        }
+
+        .metadata-box {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            padding: 10px;
+            white-space: pre-wrap;
+            font-size: 12px;
+            max-width: 280px;
+        }
+
+        @media (max-width: 1100px) {
+            .employee-filter-grid {
+                grid-template-columns: repeat(2, minmax(160px, 1fr));
+            }
+        }
+
+        @media (max-width: 600px) {
+            .employee-filter-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th {
+            background: #e5e7eb;
+            padding: 12px;
+            text-align: left;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        tr:hover {
+            background: #f8fafc;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .badge-present {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-absent {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-completed {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-progress {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .badge-high {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .badge-medium {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-low {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .message {
+            padding: 12px;
+            margin: 10px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .message-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .message-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 30px;
+            color: #777;
+        }
+
+
+        /* =========================================================
+           APPLICATION NAVIGATION
+        ========================================================= */
+        .app-layout {
+            display: grid;
+            grid-template-columns: 240px minmax(0, 1fr);
+            gap: 24px;
+            align-items: start;
+        }
+
+        .sidebar {
+            position: sticky;
+            top: 20px;
+            background: #12395b;
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 3px 15px rgba(0,0,0,0.12);
+        }
+
+        .sidebar-title {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            padding: 12px 10px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 10px;
+        }
+
+        .nav-button {
+            width: 100%;
+            text-align: left;
+            background: transparent;
+            color: #e5eef7;
+            padding: 12px 14px;
+            margin: 4px 0;
+            border-radius: 7px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+
+        .nav-button:hover,
+        .nav-button.active {
+            background: #2563eb;
+            color: white;
+            opacity: 1;
+        }
+
+        .content-area {
+            min-width: 0;
+        }
+
+        .content-area > .section {
+            margin-bottom: 20px;
+        }
+
+        @media (max-width: 850px) {
+            .app-layout {
+                grid-template-columns: 1fr;
+            }
+
+            .sidebar {
+                position: static;
+            }
+
+            .sidebar-nav {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 4px;
+            }
+        }
+
+        @media (max-width: 500px) {
+            .sidebar-nav {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* DASHBOARD */
+
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+        }
+
+        .dashboard-card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .dashboard-card h3 {
+            margin: 0 0 10px 0;
+            color: #555;
+            font-size: 15px;
+        }
+
+        .dashboard-number {
+            font-size: 30px;
+            font-weight: bold;
+            color: #12395b;
+        }
+
+        /* MODAL */
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.55);
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 25px;
+            border-radius: 10px;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #12395b;
+        }
+
+        .close {
+            font-size: 28px;
+            cursor: pointer;
+            color: #555;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+        }
+
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-actions button {
+            flex: 1;
+        }
+
+        /* LOGIN */
+
+        #loginPage {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #12395b;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            padding: 35px;
+            border-radius: 12px;
+            box-shadow: 0 10px 35px rgba(0,0,0,0.25);
+        }
+
+        .login-box h1 {
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .login-box p {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+        }
+
+        .login-box .form-group {
+            margin-bottom: 18px;
+        }
+
+        .login-btn {
+            width: 100%;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            padding: 12px;
+        }
+
+        .login-error {
+            display: none;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+
+        #application {
+            display: none;
+        }
+
+        @media (max-width: 1000px) {
+            .dashboard-cards {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 600px) {
+            .dashboard-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .search-box {
+                width: 100%;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .modal-content {
+                width: 95%;
+                margin: 20px auto;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+</head>
+
+<body>
+
+<!-- =========================================================
+     LOGIN PAGE
+========================================================= -->
+
+<div id="loginPage">
+
+    <div class="login-box">
+
+        <h1>Workforce Management</h1>
+
+        <p>Login to your account</p>
+
+        <div id="loginError" class="login-error"></div>
+
+        <div class="form-group">
+            <label for="loginUsername">Username</label>
+            <input
+                id="loginUsername"
+                type="text"
+                placeholder="Enter username"
+                autocomplete="username"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="loginPassword">Password</label>
+            <input
+                id="loginPassword"
+                type="password"
+                placeholder="Enter password"
+                autocomplete="current-password"
+            >
+        </div>
+
+        <button
+            class="login-btn"
+            onclick="loginUser()"
+            type="button"
+        >
+            Login
+        </button>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     MAIN APPLICATION
+========================================================= -->
+
+<div id="application">
+
+    <div class="container">
+
+        <!-- TOP BAR -->
+
+        <div class="top-bar">
+
+            <div class="user-info">
+
+                Logged in as:
+                <span id="currentUsername">
+                    -
+                </span>
+
+                |
+                
+                Role:
+                <span id="currentRole">
+                    -
+                </span>
+
+            </div>
+
+            <div style="display:flex; gap:10px; align-items:center;">
+
+                <button
+                    class="btn-primary"
+                    onclick="openAccountModal()"
+                    type="button"
+                >
+                    My Account
+                </button>
+
+                <button
+                    class="btn-danger"
+                    onclick="logout()"
+                    type="button"
+                >
+                    Logout
+                </button>
+
+            </div>
+
+        </div>
+
+
+        <h1>
+            Workforce Management Platform
+        </h1>
+
+        <!-- =================================================
+             NOTIFICATIONS
+        ================================================== -->
+
+        <div
+            id="notificationPanel"
+            class="notification-panel"
+        >
+
+            <div class="notification-header">
+
+                <h2>Notifications</h2>
+
+                <button
+                    class="btn-primary"
+                    onclick="loadNotifications()"
+                    type="button"
+                >
+                    Refresh
+                </button>
+
+            </div>
+
+            <div
+                id="notificationList"
+                class="notification-list"
+            >
+                <div class="empty">
+                    Loading notifications...
+                </div>
+            </div>
+
+        </div>
+
+        <div class="app-layout">
+
+            <aside class="sidebar" id="managementSidebar">
+                <div class="sidebar-title">Workforce Menu</div>
+
+                <div class="sidebar-nav">
+                    <button class="nav-button active" id="navDashboard"
+                            onclick="showSection('dashboardSection', this)">
+                        Dashboard
+                    </button>
+
+                    <button class="nav-button" id="navDepartments"
+                            onclick="showSection('departmentSection', this)">
+                        Department Management
+                    </button>
+
+                    <button class="nav-button" id="navEmployees"
+                            onclick="showSection('employeeSection', this)">
+                        Employee Management
+                    </button>
+
+                    <button class="nav-button" id="navAttendance"
+                            onclick="showSection('attendanceSection', this)">
+                        Attendance Management
+                    </button>
+
+                    <button class="nav-button" id="navTasks"
+                            onclick="showSection('taskSection', this)">
+                        Task Management
+                    </button>
+
+                    <button class="nav-button" id="navReports"
+                            onclick="showSection('reportsSection', this)">
+                        Reports
+                    </button>
+
+                    <button class="nav-button" id="navAuditLogs"
+                            onclick="showSection('auditLogsSection', this)">
+                        Audit Logs
+                    </button>
+
+                    <button class="nav-button" id="navNotifications"
+                            onclick="showSection('notificationsSection', this)">
+                        Notifications
+                    </button>
+                </div>
+            </aside>
+
+            <main class="content-area">
+
+        <!-- =================================================
+             DASHBOARD
+        ================================================== -->
+
+        <div id="dashboardSection" class="section">
+
+            <h2>Dashboard</h2>
+
+            <div
+                id="dashboardMessage"
+                class="message"
+            ></div>
+
+            <div class="dashboard-cards">
+
+                <div class="dashboard-card">
+                    <h3>Total Employees</h3>
+                    <div
+                        id="totalEmployees"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Total Departments</h3>
+                    <div
+                        id="totalDepartments"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Present Today</h3>
+                    <div
+                        id="presentToday"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Absent Today</h3>
+                    <div
+                        id="absentToday"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Total Tasks</h3>
+                    <div
+                        id="totalTasks"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Pending Tasks</h3>
+                    <div
+                        id="pendingTasks"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Completed Tasks</h3>
+                    <div
+                        id="completedTasks"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>In Progress</h3>
+                    <div
+                        id="inProgressTasks"
+                        class="dashboard-number"
+                    >
+                        0
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="section" style="margin-top: 25px; margin-bottom: 0;">
+
+                <h3 style="color: #12395b; margin-top: 0;">Workforce Overview</h3>
+
+                <p style="color: #666;">Current employee, attendance and task summary.</p>
+
+                <div style="position: relative; width: 100%; height: 360px;">
+                    <canvas id="dashboardChart"></canvas>
+                </div>
+
+            </div>
+
+        </div>
+
+
+
+
+        <!-- =================================================
+             DEPARTMENT MANAGEMENT
+        ================================================== -->
+
+        <div id="departmentSection" class="section">
+
+            <h2>Department Management</h2>
+
+            <div id="departmentMessage" class="message"></div>
+
+            <div class="top-controls">
+
+                <button class="btn-primary" onclick="loadDepartmentsManagement()">
+                    Load Departments
+                </button>
+
+                <button class="btn-success" onclick="openDepartmentModal()">
+                    + Add Department
+                </button>
+
+                <input
+                    id="departmentSearch"
+                    class="search-box"
+                    type="text"
+                    placeholder="Search department..."
+                    onkeyup="searchDepartments()"
+                >
+
+            </div>
+
+            <div id="departmentTableContainer">
+                <div class="empty">Loading departments...</div>
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             DASHBOARD CHART
+        ================================================== -->
+
+        <div id="dashboardChartSection" class="section" style="display:none;">
+
+            <h2>Workforce Overview</h2>
+
+            <div style="width:100%; overflow-x:auto;">
+                <canvas id="workforceChart" width="900" height="380" style="display:block; width:100%; max-width:900px; height:auto; margin:0 auto;"></canvas>
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             REPORTS
+        ================================================== -->
+
+        <div id="reportsSection" class="section" style="display:none;">
+
+            <h2>Workforce Reports</h2>
+
+            <div id="reportsMessage" class="message"></div>
+
+            <div class="top-controls">
+                <button class="btn-primary" onclick="loadReports()">
+                    Refresh Report
+                </button>
+            </div>
+
+            <div class="dashboard-cards">
+
+                <div class="dashboard-card">
+                    <h3>Total Employees</h3>
+                    <div id="reportTotalEmployees" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Total Departments</h3>
+                    <div id="reportTotalDepartments" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Present Today</h3>
+                    <div id="reportPresentToday" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Absent Today</h3>
+                    <div id="reportAbsentToday" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Total Tasks</h3>
+                    <div id="reportTotalTasks" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Pending Tasks</h3>
+                    <div id="reportPendingTasks" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>Completed Tasks</h3>
+                    <div id="reportCompletedTasks" class="dashboard-number">0</div>
+                </div>
+
+                <div class="dashboard-card">
+                    <h3>In Progress</h3>
+                    <div id="reportInProgressTasks" class="dashboard-number">0</div>
+                </div>
+
+            </div>
+
+            <div class="section" style="margin-top:25px; margin-bottom:0;">
+
+                <h3 style="color:#12395b; margin-top:0;">
+                    Report Summary
+                </h3>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Metric</th>
+                            <th>Value</th>
+                        </tr>
+                    </thead>
+
+                    <tbody id="reportsTableBody">
+                        <tr>
+                            <td>Total Employees</td>
+                            <td>0</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             AUDIT LOGS
+        ================================================== -->
+
+        <div id="auditLogsSection" class="section" style="display:none;">
+
+            <h2>Audit Logs</h2>
+
+            <div id="auditMessage" class="message"></div>
+
+            <div class="top-controls">
+
+                <button class="btn-primary" onclick="loadAuditLogs()">
+                    Refresh Audit Logs
+                </button>
+
+                <input
+                    id="auditSearch"
+                    class="search-box"
+                    type="text"
+                    placeholder="Search audit logs..."
+                    onkeyup="searchAuditLogs()"
+                >
+
+            </div>
+
+            <div id="auditTableContainer">
+                <div class="empty">Loading audit logs...</div>
+            </div>
+
+        </div>
+
+
+
+        <!-- =================================================
+             NOTIFICATIONS
+        ================================================== -->
+
+        <div id="notificationsSection" class="section" style="display:none;">
+
+            <h2>Notifications</h2>
+
+            <div id="notificationMessage" class="message"></div>
+
+            <div class="top-controls">
+
+                <button
+                    class="btn-primary"
+                    onclick="loadNotificationsPage()"
+                    type="button"
+                >
+                    Refresh Notifications
+                </button>
+
+                <span id="notificationUnreadSummary"
+                      style="margin-left:10px;">
+                    Unread: 0
+                </span>
+
+            </div>
+
+            <div id="notificationPageList">
+                <div class="empty">
+                    Loading notifications...
+                </div>
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             EMPLOYEE PORTAL
+        ================================================== -->
+
+        <div
+            id="employeePortal"
+            class="section"
+            style="display: none;"
+        >
+
+            <h2>Employee Portal</h2>
+
+            <div class="empty">
+
+                <h3>Welcome to the Workforce Management Platform</h3>
+
+                <p>
+                    You are logged in as an Employee.
+                </p>
+
+                <p>
+                    Employee management, attendance management,
+                    task management, and workforce reports are
+                    restricted to authorized management users.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             EMPLOYEES
+        ================================================== -->
+
+        <div id="employeeSection" class="section">
+
+            <h2>Employee Management</h2>
+
+            <div
+                id="employeeMessage"
+                class="message"
+            ></div>
+
+            <div class="top-controls">
+
+                <button
+                    class="btn-primary"
+                    onclick="loadEmployees(1)"
+                    type="button"
+                >
+                    Load Employees
+                </button>
+
+                <button
+                    class="btn-success"
+                    onclick="openEmployeeModal()"
+                    type="button"
+                >
+                    + Add Employee
+                </button>
+
+            </div>
+
+            <div class="employee-filter-grid">
+
+                <div class="form-group">
+                    <label for="employeeSearch">Search</label>
+                    <input
+                        id="employeeSearch"
+                        type="text"
+                        placeholder="Name, email or skills"
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeDepartmentFilter">Department</label>
+                    <select id="employeeDepartmentFilter">
+                        <option value="">All Departments</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeManagerFilter">Manager</label>
+                    <select id="employeeManagerFilter">
+                        <option value="">All Managers</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeStatusFilter">Status</label>
+                    <select id="employeeStatusFilter">
+                        <option value="">All Statuses</option>
+                        <option value="Active">Active</option>
+                        <option value="Inactive">Inactive</option>
+                        <option value="On Leave">On Leave</option>
+                        <option value="Terminated">Terminated</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeJoiningFrom">Joining Date From</label>
+                    <input id="employeeJoiningFrom" type="date">
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeJoiningTo">Joining Date To</label>
+                    <input id="employeeJoiningTo" type="date">
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeSkillsFilter">Skills</label>
+                    <input
+                        id="employeeSkillsFilter"
+                        type="text"
+                        placeholder="Python, SQL..."
+                    >
+                </div>
+
+                <div class="form-group">
+                    <label for="employeeSortBy">Sort By</label>
+                    <select id="employeeSortBy">
+                        <option value="id">ID</option>
+                        <option value="name">Name</option>
+                        <option value="email">Email</option>
+                        <option value="age">Age</option>
+                        <option value="salary">Salary</option>
+                        <option value="status">Status</option>
+                        <option value="joining_date">Joining Date</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="employee-filter-actions">
+
+                <select id="employeeSortOrder" aria-label="Sort order" style="width:auto; min-width:120px;">
+                    <option value="asc">Ascending</option>
+                    <option value="desc">Descending</option>
+                </select>
+
+                <select id="employeePageSize" aria-label="Employees per page" style="width:auto; min-width:130px;">
+                    <option value="5">5 per page</option>
+                    <option value="10" selected>10 per page</option>
+                    <option value="25">25 per page</option>
+                    <option value="50">50 per page</option>
+                    <option value="100">100 per page</option>
+                </select>
+
+                <button
+                    class="btn-primary"
+                    onclick="applyEmployeeFilters()"
+                    type="button"
+                >
+                    Apply Filters
+                </button>
+
+                <button
+                    class="btn-secondary"
+                    onclick="resetEmployeeFilters()"
+                    type="button"
+                >
+                    Reset
+                </button>
+
+            </div>
+
+            <div
+                id="employeeFilterSummary"
+                style="color:#666; margin-bottom:10px;"
+            ></div>
+
+            <div id="employeeTableContainer">
+                <div class="empty">
+                    Loading employees...
+                </div>
+            </div>
+
+            <div
+                id="employeePagination"
+                class="employee-pagination"
+                style="display:none;"
+            >
+                <button
+                    id="employeePreviousButton"
+                    class="btn-secondary"
+                    onclick="changeEmployeePage(-1)"
+                    type="button"
+                >
+                    Previous
+                </button>
+
+                <div
+                    id="employeePageInfo"
+                    class="employee-page-info"
+                >
+                    Page 1
+                </div>
+
+                <button
+                    id="employeeNextButton"
+                    class="btn-primary"
+                    onclick="changeEmployeePage(1)"
+                    type="button"
+                >
+                    Next
+                </button>
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             ATTENDANCE
+        ================================================== -->
+
+        <div id="attendanceSection" class="section">
+
+            <h2>Attendance Management</h2>
+
+            <div
+                id="attendanceMessage"
+                class="message"
+            ></div>
+
+            <div class="top-controls">
+
+                <button
+                    class="btn-primary"
+                    onclick="loadAttendance()"
+                >
+                    Load Attendance
+                </button>
+
+                <button
+                    class="btn-success"
+                    onclick="openAttendanceModal()"
+                >
+                    + Add Attendance
+                </button>
+
+                <input
+                    id="attendanceSearch"
+                    class="search-box"
+                    type="text"
+                    placeholder="Search attendance..."
+                    onkeyup="searchAttendance()"
+                >
+
+            </div>
+
+            <div id="attendanceTableContainer">
+
+                <div class="empty">
+                    Loading attendance...
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <!-- =================================================
+             TASKS
+        ================================================== -->
+
+        <div id="taskSection" class="section">
+
+            <h2>Task Management</h2>
+
+            <div
+                id="taskMessage"
+                class="message"
+            ></div>
+
+            <div class="top-controls">
+
+                <button
+                    class="btn-primary"
+                    onclick="loadTasks()"
+                >
+                    Load Tasks
+                </button>
+
+                <button
+                    class="btn-success"
+                    onclick="openTaskModal()"
+                >
+                    + Add Task
+                </button>
+
+                <input
+                    id="taskSearch"
+                    class="search-box"
+                    type="text"
+                    placeholder="Search tasks..."
+                    onkeyup="searchTasks()"
+                >
+
+            </div>
+
+            <div id="taskTableContainer">
+
+                <div class="empty">
+                    Loading tasks...
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+<!-- =========================================================
+     DEPARTMENT MODAL
+========================================================= -->
+
+<div id="departmentModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+            <h3 id="departmentModalTitle">Add Department</h3>
+            <span class="close" onclick="closeDepartmentModal()">&times;</span>
+        </div>
+
+        <input type="hidden" id="departmentId">
+
+        <div class="form-group">
+            <label for="departmentName">Department Name</label>
+            <input id="departmentName" type="text" placeholder="Enter department name">
+        </div>
+
+        <div class="form-group">
+            <label for="departmentDescription">Description</label>
+            <textarea id="departmentDescription" rows="4" placeholder="Enter department description"></textarea>
+        </div>
+
+        <div class="form-actions">
+            <button class="btn-success" onclick="saveDepartment()">Save</button>
+            <button class="btn-secondary" onclick="closeDepartmentModal()">Cancel</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     EMPLOYEE MODAL
+========================================================= -->
+
+<div id="employeeModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h3 id="employeeModalTitle">
+                Add Employee
+            </h3>
+
+            <span
+                class="close"
+                onclick="closeEmployeeModal()"
+            >
+                &times;
+            </span>
+
+        </div>
+
+        <input
+            type="hidden"
+            id="employeeId"
+        >
+
+        <div class="form-group">
+            <label for="employeeName">Name</label>
+            <input
+                id="employeeName"
+                type="text"
+                placeholder="Enter employee name"
+                maxlength="100"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeEmail">Email</label>
+            <input
+                id="employeeEmail"
+                type="email"
+                placeholder="Enter email"
+                maxlength="150"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeAge">Age</label>
+            <input
+                id="employeeAge"
+                type="number"
+                min="18"
+                max="100"
+                placeholder="Enter age"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeSalary">Salary</label>
+            <input
+                id="employeeSalary"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Enter salary"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeStatus">Status</label>
+            <select id="employeeStatus">
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="On Leave">On Leave</option>
+                <option value="Terminated">Terminated</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="employeeJoiningDate">Joining Date</label>
+            <input
+                id="employeeJoiningDate"
+                type="date"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeDepartment">Department</label>
+            <select id="employeeDepartment">
+                <option value="">
+                    Select Department
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="employeeManager">Manager</label>
+            <select id="employeeManager">
+                <option value="">
+                    Select Manager
+                </option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="employeeSkills">Skills</label>
+            <input
+                id="employeeSkills"
+                type="text"
+                maxlength="2000"
+                placeholder="Example: Python, SQL, Excel"
+            >
+        </div>
+
+        <div class="form-group">
+            <label for="employeeProfileMetadata">
+                Profile Metadata (JSON)
+            </label>
+            <textarea
+                id="employeeProfileMetadata"
+                rows="7"
+                placeholder='Example: {"experience_level":"Entry Level","work_mode":"Office","location":"Nandyal"}'
+            ></textarea>
+            <small style="color:#666;">
+                Enter a valid JSON object. Leave empty if not required.
+            </small>
+        </div>
+
+        <div class="form-actions">
+
+            <button
+                class="btn-success"
+                onclick="saveEmployee()"
+                type="button"
+            >
+                Save
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="closeEmployeeModal()"
+                type="button"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     ATTENDANCE MODAL
+========================================================= -->
+
+<div id="attendanceModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h3 id="attendanceModalTitle">
+                Add Attendance
+            </h3>
+
+            <span
+                class="close"
+                onclick="closeAttendanceModal()"
+            >
+                &times;
+            </span>
+
+        </div>
+
+        <input
+            type="hidden"
+            id="attendanceId"
+        >
+
+        <div class="form-group">
+
+            <label>Employee</label>
+
+            <select id="attendanceEmployee">
+
+                <option value="">
+                    Select Employee
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Attendance Date</label>
+
+            <input
+                id="attendanceDate"
+                type="date"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Status</label>
+
+            <select id="attendanceStatus">
+
+                <option value="Present">
+                    Present
+                </option>
+
+                <option value="Absent">
+                    Absent
+                </option>
+
+                <option value="Leave">
+                    Leave
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Check In</label>
+
+            <input
+                id="attendanceCheckIn"
+                type="time"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Check Out</label>
+
+            <input
+                id="attendanceCheckOut"
+                type="time"
+            >
+
+        </div>
+
+        <div class="form-actions">
+
+            <button
+                class="btn-success"
+                onclick="saveAttendance()"
+            >
+                Save
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="closeAttendanceModal()"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================================================
+     TASK MODAL
+========================================================= -->
+
+<div id="taskModal" class="modal">
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h3 id="taskModalTitle">
+                Add Task
+            </h3>
+
+            <span
+                class="close"
+                onclick="closeTaskModal()"
+            >
+                &times;
+            </span>
+
+        </div>
+
+        <input
+            type="hidden"
+            id="taskId"
+        >
+
+        <div class="form-group">
+
+            <label>Employee</label>
+
+            <select id="taskEmployee">
+
+                <option value="">
+                    Select Employee
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Task Title</label>
+
+            <input
+                id="taskTitle"
+                type="text"
+                placeholder="Enter task title"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Description</label>
+
+            <textarea
+                id="taskDescription"
+                rows="4"
+                placeholder="Enter task description"
+            ></textarea>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Priority</label>
+
+            <select id="taskPriority">
+
+                <option value="Low">
+                    Low
+                </option>
+
+                <option value="Medium" selected>
+                    Medium
+                </option>
+
+                <option value="High">
+                    High
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Status</label>
+
+            <select id="taskStatus">
+
+                <option value="Pending">
+                    Pending
+                </option>
+
+                <option value="In Progress">
+                    In Progress
+                </option>
+
+                <option value="Completed">
+                    Completed
+                </option>
+
+            </select>
+
+        </div>
+
+        <div class="form-group">
+
+            <label>Due Date</label>
+
+            <input
+                id="taskDueDate"
+                type="date"
+            >
+
+        </div>
+
+        <div class="form-actions">
+
+            <button
+                class="btn-success"
+                onclick="saveTask()"
+            >
+                Save
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="closeTaskModal()"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    let notifications = [];
+
+
+    /* =========================================================
+       API
+    ========================================================= */
+
+    const API = "http://127.0.0.1:8000";
+
+
+    /* =========================================================
+       GLOBAL DATA
+    ========================================================= */
+
+    let employees = [];
+    let attendanceRecords = [];
+    let tasks = [];
+    let departments = [];
+
+    let currentUser = null;
+
+    // Level 5.1 employee listing state
+    let employeePage = 1;
+    let employeeHasNextPage = false;
+    let employeeLoading = false;
+    let dashboardChart = null;
+
+
+    /* =========================================================
+       AUTHENTICATION
+    ========================================================= */
+
+    function getToken() {
+
+        return localStorage.getItem("access_token");
+
+    }
+
+
+    function authHeaders() {
+
+        const token = getToken();
+
+        return {
+
+            "Content-Type": "application/json",
+
+            "Authorization": `Bearer ${token}`
+
+        };
+
+    }
+
+
+    async function loginUser() {
+
+        const username =
+            document.getElementById(
+                "loginUsername"
+            ).value.trim();
+
+        const password =
+            document.getElementById(
+                "loginPassword"
+            ).value;
+
+        const errorBox =
+            document.getElementById(
+                "loginError"
+            );
+
+
+        errorBox.style.display = "none";
+
+
+        if (!username || !password) {
+
+            errorBox.textContent =
+                "Please enter username and password.";
+
+            errorBox.style.display = "block";
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/auth/login`,
+                    {
+                        method: "POST",
+
+                        headers: {
+                            "Content-Type":
+                                "application/json"
+                        },
+
+                        body: JSON.stringify({
+
+                            username: username,
+
+                            password: password
+
+                        })
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Login failed."
+                );
+
+            }
+
+
+            localStorage.setItem(
+                "access_token",
+                result.access_token
+            );
+
+
+            localStorage.setItem(
+                "user",
+                JSON.stringify(result.user)
+            );
+
+
+            await initializeApplication();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Login error:",
+                error
+            );
+
+            errorBox.textContent =
+                error.message;
+
+            errorBox.style.display =
+                "block";
+
+        }
+
+    }
+
+
+    async function loadCurrentUser() {
+
+        const token = getToken();
+
+        if (!token) {
+
+            return false;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/auth/me`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${token}`
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                localStorage.removeItem(
+                    "access_token"
+                );
+
+                localStorage.removeItem(
+                    "user"
+                );
+
+                return false;
+
+            }
+
+
+            currentUser =
+                await response.json();
+
+
+            document.getElementById(
+                "currentUsername"
+            ).textContent =
+                currentUser.username;
+
+
+            document.getElementById(
+                "currentRole"
+            ).textContent =
+                currentUser.role;
+
+
+            return true;
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Current user error:",
+                error
+            );
+
+            return false;
+
+        }
+
+    }
+
+
+    async function initializeApplication() {
+
+        const authenticated =
+            await loadCurrentUser();
+
+
+        if (!authenticated) {
+
+            showLogin();
+
+            return;
+
+        }
+
+
+        document.getElementById(
+            "loginPage"
+        ).style.display = "none";
+
+
+        document.getElementById(
+            "application"
+        ).style.display = "block";
+
+
+        const role = currentUser.role;
+
+
+        const dashboardSection =
+            document.getElementById(
+                "dashboardSection"
+            );
+
+        const employeeSection =
+            document.getElementById(
+                "employeeSection"
+            );
+
+        const attendanceSection =
+            document.getElementById(
+                "attendanceSection"
+            );
+
+        const taskSection =
+            document.getElementById(
+                "taskSection"
+            );
+
+        const departmentSection =
+            document.getElementById(
+                "departmentSection"
+            );
+
+        const reportsSection =
+            document.getElementById(
+                "reportsSection"
+            );
+
+        const auditLogsSection =
+            document.getElementById(
+                "auditLogsSection"
+            );
+
+        const notificationsSection =
+            document.getElementById(
+                "notificationsSection"
+            );
+
+        const dashboardChartSection =
+            document.getElementById(
+                "dashboardChartSection"
+            );
+
+        const employeePortal =
+            document.getElementById(
+                "employeePortal"
+            );
+
+
+        // Hide management sections by default.
+        dashboardSection.style.display = "none";
+        employeeSection.style.display = "none";
+        attendanceSection.style.display = "none";
+        taskSection.style.display = "none";
+        departmentSection.style.display = "none";
+        reportsSection.style.display = "none";
+        auditLogsSection.style.display = "none";
+        notificationsSection.style.display = "none";
+        dashboardChartSection.style.display = "none";
+        employeePortal.style.display = "none";
+
+
+        // Admin and HR Manager can access the management UI.
+        if (
+            role === "Admin" ||
+            role === "HR Manager"
+        ) {
+
+            // Show only Dashboard when the application opens.
+            dashboardSection.style.display = "block";
+
+            // Keep management sections hidden until selected.
+            employeeSection.style.display = "none";
+            attendanceSection.style.display = "none";
+            taskSection.style.display = "none";
+            departmentSection.style.display = "none";
+            reportsSection.style.display = "none";
+            auditLogsSection.style.display = "none";
+            notificationsSection.style.display = "none";
+            dashboardChartSection.style.display = "none";
+
+            document.getElementById("managementSidebar").style.display = "block";
+
+            await loadDashboard();
+            return;
+
+        }
+
+
+        // Employee gets the employee portal plus Notifications.
+        if (role === "Employee") {
+
+            employeePortal.style.display = "block";
+
+            const sidebar =
+                document.getElementById("managementSidebar");
+
+            if (sidebar) {
+                sidebar.style.display = "block";
+            }
+
+            // Employees must not see management functions.
+            const managementButtons = [
+                "navDashboard",
+                "navDepartments",
+                "navEmployees",
+                "navAttendance",
+                "navTasks",
+                "navReports",
+                "navAuditLogs"
+            ];
+
+            managementButtons.forEach(function(id) {
+
+                const button =
+                    document.getElementById(id);
+
+                if (button) {
+                    button.style.display = "none";
+                }
+
+            });
+
+            // Show the employee's own Notifications option.
+            const notificationButton =
+                document.getElementById(
+                    "navNotifications"
+                );
+
+            if (notificationButton) {
+                notificationButton.style.display = "block";
+            }
+
+            // Start the employee on Notifications so the
+            // employee can immediately see assigned-task alerts.
+            dashboardSection.style.display = "none";
+            notificationsSection.style.display = "block";
+
+            await loadNotificationsPage();
+
+            return;
+
+        }
+
+
+        alert(
+            "Your account has an invalid role."
+        );
+
+        logout();
+
+    }
+
+    /* =========================================================
+       SECTION NAVIGATION
+    ========================================================= */
+
+    async function showSection(sectionId, clickedButton) {
+
+        const sectionIds = [
+            "dashboardSection",
+            "departmentSection",
+            "employeeSection",
+            "attendanceSection",
+            "taskSection",
+            "reportsSection",
+            "auditLogsSection",
+            "notificationsSection"
+        ];
+
+        sectionIds.forEach(function(id) {
+            const section = document.getElementById(id);
+            if (section) {
+                section.style.display = "none";
+            }
+        });
+
+        const selectedSection = document.getElementById(sectionId);
+
+        if (selectedSection) {
+            selectedSection.style.display = "block";
+        }
+
+        document.querySelectorAll(".nav-button").forEach(function(button) {
+            button.classList.remove("active");
+        });
+
+        if (clickedButton) {
+            clickedButton.classList.add("active");
+        }
+
+        // Load the selected section from the API.
+        try {
+
+            if (sectionId === "dashboardSection") {
+                await loadDashboard();
+            }
+
+            else if (sectionId === "departmentSection") {
+                await loadDepartmentsManagement();
+            }
+
+            else if (sectionId === "employeeSection") {
+                await loadEmployees();
+            }
+
+            else if (sectionId === "attendanceSection") {
+                await loadAttendance();
+            }
+
+            else if (sectionId === "taskSection") {
+                await loadTasks();
+            }
+
+            else if (sectionId === "reportsSection") {
+                await loadReports();
+            }
+
+            else if (sectionId === "auditLogsSection") {
+                await loadAuditLogs();
+            }
+
+            else if (sectionId === "notificationsSection") {
+                await loadNotificationsPage();
+            }
+
+            window.scrollTo({
+                top: 0,
+                behavior: "smooth"
+            });
+
+        } catch (error) {
+            console.error("Section loading error:", error);
+        }
+    }
+
+
+    function showLogin() {
+
+        document.getElementById(
+            "loginPage"
+        ).style.display = "flex";
+
+
+        document.getElementById(
+            "application"
+        ).style.display = "none";
+
+    }
+
+
+    function logout() {
+
+        localStorage.removeItem(
+            "access_token"
+        );
+
+        localStorage.removeItem(
+            "user"
+        );
+
+        currentUser = null;
+
+        document.getElementById(
+            "loginUsername"
+        ).value = "";
+
+        document.getElementById(
+            "loginPassword"
+        ).value = "";
+
+        showLogin();
+
+    }
+
+
+    /* =========================================================
+       GENERAL HELPERS
+    ========================================================= */
+
+    function showMessage(
+        elementId,
+        message,
+        success = true
+    ) {
+
+        const element =
+            document.getElementById(
+                elementId
+            );
+
+
+        if (!element) {
+            return;
+        }
+
+
+        element.textContent =
+            message;
+
+
+        element.className =
+            success
+                ? "message message-success"
+                : "message message-error";
+
+
+        element.style.display =
+            "block";
+
+
+        setTimeout(() => {
+
+            element.style.display =
+                "none";
+
+        }, 3000);
+
+    }
+
+
+    function escapeHtml(value) {
+
+        if (
+            value === null ||
+            value === undefined
+        ) {
+
+            return "";
+
+        }
+
+
+        return String(value)
+
+            .replace(/&/g, "&amp;")
+
+            .replace(/</g, "&lt;")
+
+            .replace(/>/g, "&gt;")
+
+            .replace(/"/g, "&quot;")
+
+            .replace(/'/g, "&#039;");
+
+    }
+
+
+    function formatSalary(salary) {
+
+        return new Intl.NumberFormat(
+            "en-IN",
+            {
+                style: "currency",
+                currency: "INR",
+                maximumFractionDigits: 0
+            }
+        ).format(salary);
+
+    }
+
+
+    function getEmployeeName(id) {
+
+        const employee =
+            employees.find(
+                item => item.id === Number(id)
+            );
+
+
+        return employee
+            ? employee.name
+            : "No Manager";
+
+    }
+
+
+    /* =========================================================
+       AUDIT LOGS
+    ========================================================= */
+
+    let auditLogs = [];
+
+    async function loadAuditLogs() {
+
+        const container = document.getElementById("auditTableContainer");
+
+        try {
+
+            container.innerHTML = `<div class="empty">Loading audit logs...</div>`;
+
+            const response = await fetch(
+                `${API}/api/audit-logs/`,
+                {
+                    headers: authHeaders()
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail || "Failed to load audit logs."
+                );
+            }
+
+            auditLogs = Array.isArray(result) ? result : [];
+
+            displayAuditLogs(auditLogs);
+
+            showMessage(
+                "auditMessage",
+                "Audit logs loaded successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            console.error("Audit log error:", error);
+
+            container.innerHTML = `
+                <div class="empty">
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+
+            showMessage(
+                "auditMessage",
+                error.message,
+                false
+            );
+
+        }
+
+    }
+
+
+    function displayAuditLogs(logList = auditLogs) {
+
+        const container =
+            document.getElementById("auditTableContainer");
+
+        if (!logList.length) {
+
+            container.innerHTML = `
+                <div class="empty">
+                    No audit logs found.
+                </div>
+            `;
+
+            return;
+        }
+
+        let html = `
+            <div style="overflow-x:auto;">
+            <table>
+
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date / Time</th>
+                        <th>User</th>
+                        <th>Action</th>
+                        <th>Entity</th>
+                        <th>Entity ID</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+
+                <tbody>
+        `;
+
+        logList.forEach(log => {
+
+            const createdAt =
+                log.created_at
+                    ? new Date(log.created_at).toLocaleString("en-IN")
+                    : "-";
+
+            html += `
+                <tr>
+                    <td>${log.id ?? "-"}</td>
+                    <td>${escapeHtml(createdAt)}</td>
+                    <td>${escapeHtml(log.username || "System")}</td>
+                    <td>${escapeHtml(log.action || "-")}</td>
+                    <td>${escapeHtml(log.entity || "-")}</td>
+                    <td>${log.entity_id ?? "-"}</td>
+                    <td>${escapeHtml(log.details || "-")}</td>
+                </tr>
+            `;
+
+        });
+
+        html += `
+                </tbody>
+            </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+
+    function searchAuditLogs() {
+
+        const query =
+            document.getElementById("auditSearch")
+                .value
+                .trim()
+                .toLowerCase();
+
+        if (!query) {
+            displayAuditLogs(auditLogs);
+            return;
+        }
+
+        const filtered = auditLogs.filter(log => {
+
+            const searchable = [
+                log.id,
+                log.username,
+                log.action,
+                log.entity,
+                log.entity_id,
+                log.details,
+                log.created_at
+            ]
+            .join(" ")
+            .toLowerCase();
+
+            return searchable.includes(query);
+        });
+
+        displayAuditLogs(filtered);
+    }
+
+
+    /* =========================================================
+       REPORTS
+    ========================================================= */
+
+    async function loadReports() {
+
+        const message = document.getElementById("reportsMessage");
+
+        try {
+
+            const response = await fetch(
+                `${API}/api/reports/summary`,
+                {
+                    headers: {
+                        "Authorization": `Bearer ${getToken()}`
+                    }
+                }
+            );
+
+            if (!response.ok) {
+                throw new Error("Failed to load workforce report.");
+            }
+
+            const data = await response.json();
+
+            const employeesTotal = data.employees.total;
+            const departmentsTotal = data.departments.total;
+            const presentToday = data.attendance.present;
+            const absentToday = data.attendance.absent;
+            const tasksTotal = data.tasks.total;
+            const pendingTasks = data.tasks.pending;
+            const completedTasks = data.tasks.completed;
+            const inProgressTasks = data.tasks.in_progress;
+
+            document.getElementById("reportTotalEmployees").textContent = employeesTotal;
+            document.getElementById("reportTotalDepartments").textContent = departmentsTotal;
+            document.getElementById("reportPresentToday").textContent = presentToday;
+            document.getElementById("reportAbsentToday").textContent = absentToday;
+            document.getElementById("reportTotalTasks").textContent = tasksTotal;
+            document.getElementById("reportPendingTasks").textContent = pendingTasks;
+            document.getElementById("reportCompletedTasks").textContent = completedTasks;
+            document.getElementById("reportInProgressTasks").textContent = inProgressTasks;
+
+            document.getElementById("reportsTableBody").innerHTML = `
+                <tr><td>Total Employees</td><td>${employeesTotal}</td></tr>
+                <tr><td>Total Departments</td><td>${departmentsTotal}</td></tr>
+                <tr><td>Present Today</td><td>${presentToday}</td></tr>
+                <tr><td>Absent Today</td><td>${absentToday}</td></tr>
+                <tr><td>Total Tasks</td><td>${tasksTotal}</td></tr>
+                <tr><td>Pending Tasks</td><td>${pendingTasks}</td></tr>
+                <tr><td>Completed Tasks</td><td>${completedTasks}</td></tr>
+                <tr><td>In Progress</td><td>${inProgressTasks}</td></tr>
+            `;
+
+            message.className = "message message-success";
+            message.textContent = "Report loaded successfully.";
+            message.style.display = "block";
+
+        }
+
+        catch (error) {
+
+            console.error("Reports error:", error);
+
+            message.className = "message message-error";
+            message.textContent = error.message;
+            message.style.display = "block";
+
+        }
+
+    }
+
+
+    /* =========================================================
+       NOTIFICATIONS
+    ========================================================= */
+
+    function toggleNotifications() {
+
+        const panel =
+            document.getElementById("notificationPanel");
+
+        if (!panel) {
+            return;
+        }
+
+        const isVisible =
+            panel.style.display === "block";
+
+        panel.style.display =
+            isVisible ? "none" : "block";
+
+        if (!isVisible) {
+            loadNotifications();
+        }
+    }
+
+
+    function formatNotificationDate(value) {
+
+        if (!value) {
+            return "";
+        }
+
+        const date = new Date(value);
+
+        if (Number.isNaN(date.getTime())) {
+            return String(value);
+        }
+
+        return date.toLocaleString("en-IN");
+    }
+
+
+    async function loadNotifications() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/notifications/`,
+                    {
+                        headers: authHeaders()
+                    }
+                );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    "Failed to load notifications."
+                );
+            }
+
+            notifications = Array.isArray(result)
+                ? result
+                : [];
+
+            displayNotifications();
+
+        }
+        catch (error) {
+
+            console.error(
+                "Notification loading error:",
+                error
+            );
+
+            const container =
+                document.getElementById("notificationList");
+
+            if (container) {
+                container.innerHTML =
+                    `<div class="empty">${escapeHtml(error.message)}</div>`;
+            }
+        }
+    }
+
+
+    function displayNotifications() {
+
+        const container =
+            document.getElementById("notificationList");
+
+        const countElement =
+            document.getElementById("notificationCount");
+
+        if (!container || !countElement) {
+            return;
+        }
+
+        const unreadCount =
+            notifications.filter(
+                notification => !notification.is_read
+            ).length;
+
+        countElement.textContent = unreadCount;
+        countElement.style.display =
+            unreadCount > 0 ? "inline-flex" : "none";
+
+        if (!notifications.length) {
+
+            container.innerHTML =
+                `<div class="empty">No notifications found.</div>`;
+
+            return;
+        }
+
+        let html = "";
+
+        notifications.forEach(notification => {
+
+            const unreadClass =
+                notification.is_read ? "" : "unread";
+
+            html += `
+                <div class="notification-item ${unreadClass}">
+
+                    <div class="notification-title">
+                        ${escapeHtml(notification.title)}
+                    </div>
+
+                    <div class="notification-message">
+                        ${escapeHtml(notification.message)}
+                    </div>
+
+                    <div class="notification-meta">
+                        Type: ${escapeHtml(notification.type || "General")}
+                        &nbsp; | &nbsp;
+                        ${escapeHtml(formatNotificationDate(notification.created_at))}
+                        &nbsp; | &nbsp;
+                        ${notification.is_read ? "Read" : "Unread"}
+                    </div>
+
+                    <div class="notification-actions">
+                        ${
+                            !notification.is_read
+                                ? `
+                                    <button
+                                        class="btn-success"
+                                        onclick="markNotificationRead(${notification.id})"
+                                        type="button"
+                                    >
+                                        Mark as Read
+                                    </button>
+                                  `
+                                : ""
+                        }
+
+                        <button
+                            class="btn-danger"
+                            onclick="deleteNotification(${notification.id})"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+                    </div>
+
+                </div>
+            `;
+        });
+
+        container.innerHTML = html;
+    }
+
+
+    async function markNotificationRead(id) {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/notifications/${id}/read`,
+                    {
+                        method: "PUT",
+                        headers: authHeaders()
+                    }
+                );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    "Failed to mark notification as read."
+                );
+            }
+
+            await loadNotifications();
+
+        }
+        catch (error) {
+
+            console.error(
+                "Mark notification read error:",
+                error
+            );
+
+            alert(error.message);
+        }
+    }
+
+
+    async function deleteNotification(id) {
+
+        if (
+            !confirm(
+                "Are you sure you want to delete this notification?"
+            )
+        ) {
+            return;
+        }
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/notifications/${id}`,
+                    {
+                        method: "DELETE",
+                        headers: authHeaders()
+                    }
+                );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    "Failed to delete notification."
+                );
+            }
+
+            await loadNotifications();
+
+        }
+        catch (error) {
+
+            console.error(
+                "Delete notification error:",
+                error
+            );
+
+            alert(error.message);
+        }
+    }
+
+
+
+    /* =========================================================
+       NOTIFICATIONS PAGE
+    ========================================================= */
+
+    let notificationPageItems = [];
+
+    async function loadNotificationsPage() {
+
+        const container =
+            document.getElementById("notificationPageList");
+
+        const message =
+            document.getElementById("notificationMessage");
+
+        try {
+
+            container.innerHTML =
+                `<div class="empty">Loading notifications...</div>`;
+
+            const response = await fetch(
+                `${API}/api/notifications/`,
+                {
+                    headers: authHeaders()
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to load notifications."
+                );
+
+            }
+
+            notificationPageItems =
+                Array.isArray(result)
+                    ? result
+                    : [];
+
+            displayNotificationsPage();
+
+            message.className =
+                "message message-success";
+
+            message.textContent =
+                "Notifications loaded successfully.";
+
+            message.style.display =
+                "block";
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Notifications page error:",
+                error
+            );
+
+            container.innerHTML = `
+                <div class="empty">
+                    ${escapeHtml(error.message)}
+                </div>
+            `;
+
+            message.className =
+                "message message-error";
+
+            message.textContent =
+                error.message;
+
+            message.style.display =
+                "block";
+
+        }
+
+    }
+
+
+    function displayNotificationsPage() {
+
+        const container =
+            document.getElementById("notificationPageList");
+
+        const summary =
+            document.getElementById(
+                "notificationUnreadSummary"
+            );
+
+        const unread =
+            notificationPageItems.filter(
+                item => !item.is_read
+            ).length;
+
+        summary.textContent =
+            `Unread: ${unread}`;
+
+        if (!notificationPageItems.length) {
+
+            container.innerHTML = `
+                <div class="empty">
+                    No notifications found.
+                </div>
+            `;
+
+            return;
+        }
+
+        let html = "";
+
+        notificationPageItems.forEach(notification => {
+
+            const createdAt =
+                notification.created_at
+                    ? new Date(
+                        notification.created_at
+                    ).toLocaleString("en-IN")
+                    : "-";
+
+            const unreadStyle =
+                notification.is_read
+                    ? ""
+                    : "border-left:5px solid #2563eb;";
+
+            html += `
+                <div
+                    class="section"
+                    style="
+                        margin-bottom:15px;
+                        ${unreadStyle}
+                    "
+                >
+
+                    <h3 style="margin-top:0;">
+                        ${escapeHtml(
+                            notification.title || "Notification"
+                        )}
+                    </h3>
+
+                    <p>
+                        ${escapeHtml(
+                            notification.message || ""
+                        )}
+                    </p>
+
+                    <p style="font-size:13px;color:#666;">
+                        Type:
+                        ${escapeHtml(
+                            notification.type || "General"
+                        )}
+                        &nbsp; | &nbsp;
+                        ${escapeHtml(createdAt)}
+                        &nbsp; | &nbsp;
+                        ${
+                            notification.is_read
+                                ? "Read"
+                                : "Unread"
+                        }
+                    </p>
+
+                    <div>
+
+                        ${
+                            !notification.is_read
+                                ? `
+                                    <button
+                                        class="btn-success"
+                                        type="button"
+                                        onclick="
+                                            markNotificationReadPage(
+                                                ${notification.id}
+                                            )
+                                        "
+                                    >
+                                        Mark as Read
+                                    </button>
+                                  `
+                                : ""
+                        }
+
+                        <button
+                            class="btn-danger"
+                            type="button"
+                            onclick="
+                                deleteNotificationPage(
+                                    ${notification.id}
+                                )
+                            "
+                        >
+                            Delete
+                        </button>
+
+                    </div>
+
+                </div>
+            `;
+
+        });
+
+        container.innerHTML = html;
+    }
+
+
+    async function markNotificationReadPage(id) {
+
+        try {
+
+            const response = await fetch(
+                `${API}/api/notifications/${id}/read`,
+                {
+                    method: "PUT",
+                    headers: authHeaders()
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to mark notification as read."
+                );
+
+            }
+
+            await loadNotificationsPage();
+
+        }
+
+        catch (error) {
+
+            alert(error.message);
+
+        }
+
+    }
+
+
+    async function deleteNotificationPage(id) {
+
+        if (
+            !confirm(
+                "Are you sure you want to delete this notification?"
+            )
+        ) {
+            return;
+        }
+
+        try {
+
+            const response = await fetch(
+                `${API}/api/notifications/${id}`,
+                {
+                    method: "DELETE",
+                    headers: authHeaders()
+                }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to delete notification."
+                );
+
+            }
+
+            await loadNotificationsPage();
+
+        }
+
+        catch (error) {
+
+            alert(error.message);
+
+        }
+
+    }
+
+
+    /* =========================================================
+       DASHBOARD
+    ========================================================= */
+
+    async function loadDashboard() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/reports/summary`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Failed to load dashboard."
+                );
+
+            }
+
+
+            const data =
+                await response.json();
+
+
+            document.getElementById(
+                "totalEmployees"
+            ).textContent =
+                data.employees.total;
+
+
+            document.getElementById(
+                "totalDepartments"
+            ).textContent =
+                data.departments.total;
+
+
+            document.getElementById(
+                "presentToday"
+            ).textContent =
+                data.attendance.present;
+
+
+            document.getElementById(
+                "absentToday"
+            ).textContent =
+                data.attendance.absent;
+
+
+            document.getElementById(
+                "totalTasks"
+            ).textContent =
+                data.tasks.total;
+
+
+            document.getElementById(
+                "pendingTasks"
+            ).textContent =
+                data.tasks.pending;
+
+
+            document.getElementById(
+                "completedTasks"
+            ).textContent =
+                data.tasks.completed;
+
+
+            document.getElementById(
+                "inProgressTasks"
+            ).textContent =
+                data.tasks.in_progress;
+
+            drawWorkforceChart(data);
+
+            renderDashboardChart(data);
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Dashboard error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    function renderDashboardChart(data) {
+
+        const canvas =
+            document.getElementById("dashboardChart");
+
+        if (!canvas || typeof Chart === "undefined") {
+            console.error("Dashboard chart could not be loaded. Chart.js is unavailable.");
+            return;
+        }
+
+        if (dashboardChart) {
+            dashboardChart.destroy();
+        }
+
+        dashboardChart = new Chart(canvas, {
+            type: "bar",
+            data: {
+                labels: [
+                    "Employees",
+                    "Departments",
+                    "Present Today",
+                    "Absent Today",
+                    "Total Tasks",
+                    "Pending Tasks",
+                    "Completed Tasks",
+                    "In Progress"
+                ],
+                datasets: [{
+                    label: "Count",
+                    data: [
+                        data.employees.total,
+                        data.departments.total,
+                        data.attendance.present,
+                        data.attendance.absent,
+                        data.tasks.total,
+                        data.tasks.pending,
+                        data.tasks.completed,
+                        data.tasks.in_progress
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        enabled: true
+                    }
+                }
+            }
+        });
+
+    }
+
+
+
+
+    /* =========================================================
+       DEPARTMENT MANAGEMENT
+    ========================================================= */
+
+    async function loadDepartmentsManagement() {
+
+        try {
+
+            const response = await fetch(
+                `${API}/api/departments/`,
+                { headers: { "Authorization": `Bearer ${getToken()}` } }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "Failed to load departments.");
+            }
+
+            departments = result;
+            displayDepartments(departments);
+
+            const select = document.getElementById("employeeDepartment");
+            if (select) {
+                select.innerHTML = `<option value="">Select Department</option>`;
+                departments.forEach(department => {
+                    select.innerHTML += `<option value="${department.id}">${escapeHtml(department.name)}</option>`;
+                });
+            }
+
+        } catch (error) {
+            console.error("Department loading error:", error);
+            showMessage("departmentMessage", error.message, false);
+        }
+
+    }
+
+
+    function displayDepartments(departmentList = departments) {
+
+        const container = document.getElementById("departmentTableContainer");
+
+        if (!departmentList.length) {
+            container.innerHTML = `<div class="empty">No departments found.</div>`;
+            return;
+        }
+
+        let html = `
+            <div style="overflow-x:auto;">
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Department Name</th>
+                        <th>Description</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        departmentList.forEach(department => {
+            html += `
+                <tr>
+                    <td>${department.id}</td>
+                    <td>${escapeHtml(department.name)}</td>
+                    <td>${escapeHtml(department.description || "-")}</td>
+                    <td>
+                        <div class="action-buttons">
+                            <button class="btn-warning" onclick="editDepartment(${department.id})">Edit</button>
+                            ${currentUser && currentUser.role === "Admin" ? `<button class="btn-danger" onclick="deleteDepartment(${department.id})">Delete</button>` : ""}
+                        </div>
+                    </td>
+                </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        container.innerHTML = html;
+
+    }
+
+
+    function searchDepartments() {
+
+        const search = document.getElementById("departmentSearch").value.toLowerCase().trim();
+
+        if (!search) {
+            displayDepartments();
+            return;
+        }
+
+        const filtered = departments.filter(department =>
+            String(department.id).includes(search) ||
+            String(department.name || "").toLowerCase().includes(search) ||
+            String(department.description || "").toLowerCase().includes(search)
+        );
+
+        displayDepartments(filtered);
+
+    }
+
+
+    function openDepartmentModal(department = null) {
+
+        document.getElementById("departmentModalTitle").textContent =
+            department ? "Edit Department" : "Add Department";
+        document.getElementById("departmentId").value = department ? department.id : "";
+        document.getElementById("departmentName").value = department ? department.name : "";
+        document.getElementById("departmentDescription").value = department ? (department.description || "") : "";
+        document.getElementById("departmentModal").style.display = "block";
+
+    }
+
+
+    function closeDepartmentModal() {
+        document.getElementById("departmentModal").style.display = "none";
+    }
+
+
+    function editDepartment(id) {
+
+        const department = departments.find(item => item.id === Number(id));
+
+        if (department) {
+            openDepartmentModal(department);
+        }
+
+    }
+
+
+    async function saveDepartment() {
+
+        const id = document.getElementById("departmentId").value;
+        const name = document.getElementById("departmentName").value.trim();
+        const description = document.getElementById("departmentDescription").value.trim();
+
+        if (!name) {
+            alert("Department name is required.");
+            return;
+        }
+
+        try {
+
+            const url = id
+                ? `${API}/api/departments/${id}`
+                : `${API}/api/departments/`;
+
+            const method = id ? "PUT" : "POST";
+
+            const response = await fetch(url, {
+                method: method,
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    name: name,
+                    description: description || null
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "Failed to save department.");
+            }
+
+            closeDepartmentModal();
+            await loadDepartmentsManagement();
+            await loadDashboard();
+
+            showMessage(
+                "departmentMessage",
+                id ? "Department updated successfully." : "Department created successfully.",
+                true
+            );
+
+        } catch (error) {
+            console.error("Save department error:", error);
+            alert(error.message);
+        }
+
+    }
+
+
+    async function deleteDepartment(id) {
+
+        if (!confirm("Are you sure you want to delete this department?")) {
+            return;
+        }
+
+        try {
+
+            const response = await fetch(
+                `${API}/api/departments/${id}`,
+                { method: "DELETE", headers: authHeaders() }
+            );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.detail || "Failed to delete department.");
+            }
+
+            await loadDepartmentsManagement();
+            await loadEmployees();
+            await loadDashboard();
+
+            showMessage("departmentMessage", "Department deleted successfully.", true);
+
+        } catch (error) {
+            console.error("Delete department error:", error);
+            alert(error.message);
+        }
+
+    }
+
+
+    /* =========================================================
+       DASHBOARD CHART
+    ========================================================= */
+
+    function drawWorkforceChart(data) {
+
+        const canvas = document.getElementById("workforceChart");
+        if (!canvas) return;
+
+        const ctx = canvas.getContext("2d");
+        const width = canvas.width;
+        const height = canvas.height;
+
+        ctx.clearRect(0, 0, width, height);
+
+        const values = [
+            data.employees.total || 0,
+            data.departments.total || 0,
+            data.attendance.present || 0,
+            data.attendance.absent || 0,
+            data.tasks.total || 0,
+            data.tasks.pending || 0,
+            data.tasks.completed || 0,
+            data.tasks.in_progress || 0
+        ];
+
+        const labels = [
+            "Employees", "Departments", "Present", "Absent",
+            "Tasks", "Pending", "Completed", "In Progress"
+        ];
+
+        const maxValue = Math.max(...values, 1);
+        const chartLeft = 55;
+        const chartTop = 25;
+        const chartBottom = height - 65;
+        const chartHeight = chartBottom - chartTop;
+        const barWidth = 65;
+        const gap = 40;
+        const totalWidth = values.length * barWidth + (values.length - 1) * gap;
+        const startX = Math.max(chartLeft, (width - totalWidth) / 2);
+
+        ctx.font = "12px Arial";
+        ctx.textAlign = "center";
+
+        for (let i = 0; i <= maxValue; i++) {
+            const y = chartBottom - (i / maxValue) * chartHeight;
+            ctx.strokeStyle = "#e5e7eb";
+            ctx.beginPath();
+            ctx.moveTo(chartLeft, y);
+            ctx.lineTo(width - 25, y);
+            ctx.stroke();
+            ctx.fillStyle = "#555";
+            ctx.fillText(String(i), 28, y + 4);
+        }
+
+        values.forEach((value, i) => {
+            const x = startX + i * (barWidth + gap);
+            const barHeight = (value / maxValue) * chartHeight;
+            const y = chartBottom - barHeight;
+
+            ctx.fillStyle = "#2563eb";
+            ctx.fillRect(x, y, barWidth, barHeight);
+
+            ctx.fillStyle = "#12395b";
+            ctx.font = "bold 14px Arial";
+            ctx.fillText(String(value), x + barWidth / 2, y - 8);
+
+            ctx.fillStyle = "#444";
+            ctx.font = "11px Arial";
+            ctx.fillText(labels[i], x + barWidth / 2, chartBottom + 20);
+        });
+
+    }
+
+
+    /* =========================================================
+       EMPLOYEES
+    ========================================================= */
+
+    async function loadEmployees(page = employeePage) {
+
+        if (employeeLoading) {
+            return;
+        }
+
+        employeeLoading = true;
+        employeePage = Math.max(1, Number(page) || 1);
+
+        const container =
+            document.getElementById("employeeTableContainer");
+
+        if (container) {
+            container.innerHTML =
+                `<div class="empty">Loading employees...</div>`;
+        }
+
+        try {
+
+            // Load departments for both the employee form and filters.
+            await loadDepartments();
+
+            const params = new URLSearchParams();
+
+            const search =
+                document.getElementById("employeeSearch")?.value.trim() || "";
+
+            const departmentId =
+                document.getElementById("employeeDepartmentFilter")?.value || "";
+
+            const managerId =
+                document.getElementById("employeeManagerFilter")?.value || "";
+
+            const status =
+                document.getElementById("employeeStatusFilter")?.value || "";
+
+            const joiningDateFrom =
+                document.getElementById("employeeJoiningFrom")?.value || "";
+
+            const joiningDateTo =
+                document.getElementById("employeeJoiningTo")?.value || "";
+
+            const skills =
+                document.getElementById("employeeSkillsFilter")?.value.trim() || "";
+
+            const sortBy =
+                document.getElementById("employeeSortBy")?.value || "id";
+
+            const sortOrder =
+                document.getElementById("employeeSortOrder")?.value || "asc";
+
+            const limit =
+                Number(
+                    document.getElementById("employeePageSize")?.value || 10
+                );
+
+            if (search) {
+                params.set("search", search);
+            }
+
+            if (departmentId) {
+                params.set("department_id", departmentId);
+            }
+
+            if (managerId) {
+                params.set("manager_id", managerId);
+            }
+
+            if (status) {
+                params.set("status", status);
+            }
+
+            if (joiningDateFrom) {
+                params.set("joining_date_from", joiningDateFrom);
+            }
+
+            if (joiningDateTo) {
+                params.set("joining_date_to", joiningDateTo);
+            }
+
+            if (skills) {
+                params.set("skills", skills);
+            }
+
+            params.set("sort_by", sortBy);
+            params.set("sort_order", sortOrder);
+            params.set("page", String(employeePage));
+            params.set("limit", String(limit));
+
+            const response =
+                await fetch(
+                    `${API}/api/employees/?${params.toString()}`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    "Failed to load employees."
+                );
+            }
+
+            employees =
+                Array.isArray(result)
+                    ? result
+                    : [];
+
+            displayEmployees();
+
+            // Because the API returns the requested page as an array,
+            // a full page means there may be another page.
+            employeeHasNextPage =
+                employees.length === limit;
+
+            updateEmployeePagination();
+
+            updateEmployeeFilterSummary();
+
+            // Refresh dropdowns used by other modules.
+            populateEmployeeDropdowns();
+
+            // Managers for the filter should not be limited to the
+            // currently displayed page.
+            await loadManagerFilterOptions();
+
+            populateManagerDropdown();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Employee loading error:",
+                error
+            );
+
+            if (container) {
+                container.innerHTML =
+                    `<div class="empty">
+                        Unable to load employees.
+                        Please try again.
+                    </div>`;
+            }
+
+            showMessage(
+                "employeeMessage",
+                error.message,
+                false
+            );
+
+        }
+
+        finally {
+            employeeLoading = false;
+        }
+
+    }
+
+
+    async function loadManagerFilterOptions() {
+
+        const select =
+            document.getElementById(
+                "employeeManagerFilter"
+            );
+
+        if (!select) {
+            return;
+        }
+
+        const selectedValue = select.value;
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/employees/?sort_by=name&sort_order=asc&page=1&limit=100`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+            if (!response.ok) {
+                return;
+            }
+
+            const managerEmployees =
+                await response.json();
+
+            select.innerHTML =
+                `<option value="">
+                    All Managers
+                </option>`;
+
+            if (Array.isArray(managerEmployees)) {
+
+                managerEmployees.forEach(employee => {
+
+                    select.innerHTML += `
+                        <option value="${employee.id}">
+                            ${escapeHtml(employee.name)}
+                        </option>
+                    `;
+
+                });
+
+            }
+
+            if (
+                selectedValue &&
+                Array.from(select.options).some(
+                    option => option.value === selectedValue
+                )
+            ) {
+                select.value = selectedValue;
+            }
+
+        }
+        catch (error) {
+
+            console.error(
+                "Manager filter loading error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    function displayEmployees(
+        employeeList = employees
+    ) {
+
+        const container =
+            document.getElementById(
+                "employeeTableContainer"
+            );
+
+        if (!employeeList.length) {
+
+            container.innerHTML =
+                `<div class="empty">
+                    No employees found for the selected filters.
+                </div>`;
+
+            return;
+
+        }
+
+        let html = `
+            <div style="overflow-x:auto;">
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Age</th>
+                        <th>Salary</th>
+                        <th>Status</th>
+                        <th>Joining Date</th>
+                        <th>Department</th>
+                        <th>Manager</th>
+                        <th>Skills</th>
+                        <th>Profile Metadata</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+        `;
+
+        employeeList.forEach(employee => {
+
+            const departmentName =
+                employee.department
+                    ? employee.department.name
+                    : "Not Assigned";
+
+            const managerName =
+                employee.manager_name ||
+                getEmployeeName(employee.manager_id) ||
+                "No Manager";
+
+            const metadata =
+                employee.profile_metadata
+                    ? JSON.stringify(
+                        employee.profile_metadata,
+                        null,
+                        2
+                    )
+                    : "-";
+
+            html += `
+
+                <tr>
+
+                    <td>${employee.id}</td>
+
+                    <td>
+                        ${escapeHtml(employee.name)}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(employee.email)}
+                    </td>
+
+                    <td>${employee.age}</td>
+
+                    <td>
+                        ${formatSalary(employee.salary)}
+                    </td>
+
+                    <td>
+                        <span class="badge ${getEmployeeStatusClass(employee.status)}">
+                            ${escapeHtml(employee.status || "Active")}
+                        </span>
+                    </td>
+
+                    <td>
+                        ${escapeHtml(employee.joining_date || "-")}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(departmentName)}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(managerName)}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(employee.skills || "-")}
+                    </td>
+
+                    <td>
+                        <div class="metadata-box">
+                            ${escapeHtml(metadata)}
+                        </div>
+                    </td>
+
+                    <td>
+
+                        <div class="action-buttons">
+
+                            <button
+                                class="btn-warning"
+                                onclick="editEmployee(${employee.id})"
+                                type="button"
+                            >
+                                Edit
+                            </button>
+
+                            ${
+                                currentUser &&
+                                currentUser.role === "Admin"
+                                    ? `
+                                        <button
+                                            class="btn-danger"
+                                            onclick="deleteEmployee(${employee.id})"
+                                            type="button"
+                                        >
+                                            Delete
+                                        </button>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
+
+        html += `
+                </tbody>
+            </table>
+            </div>
+        `;
+
+        container.innerHTML =
+            html;
+
+    }
+
+
+    function getEmployeeStatusClass(status) {
+
+        if (status === "Active") {
+            return "badge-completed";
+        }
+
+        if (status === "On Leave") {
+            return "badge-medium";
+        }
+
+        if (
+            status === "Inactive" ||
+            status === "Terminated"
+        ) {
+            return "badge-absent";
+        }
+
+        return "badge-progress";
+    }
+
+
+    function updateEmployeePagination() {
+
+        const pagination =
+            document.getElementById(
+                "employeePagination"
+            );
+
+        const previousButton =
+            document.getElementById(
+                "employeePreviousButton"
+            );
+
+        const nextButton =
+            document.getElementById(
+                "employeeNextButton"
+            );
+
+        const pageInfo =
+            document.getElementById(
+                "employeePageInfo"
+            );
+
+        if (
+            !pagination ||
+            !previousButton ||
+            !nextButton ||
+            !pageInfo
+        ) {
+            return;
+        }
+
+        pagination.style.display = "flex";
+
+        pageInfo.textContent =
+            `Page ${employeePage}`;
+
+        previousButton.disabled =
+            employeePage <= 1;
+
+        nextButton.disabled =
+            !employeeHasNextPage;
+
+        previousButton.style.opacity =
+            previousButton.disabled ? "0.5" : "1";
+
+        nextButton.style.opacity =
+            nextButton.disabled ? "0.5" : "1";
+    }
+
+
+    function updateEmployeeFilterSummary() {
+
+        const summary =
+            document.getElementById(
+                "employeeFilterSummary"
+            );
+
+        if (!summary) {
+            return;
+        }
+
+        const count =
+            employees.length;
+
+        summary.textContent =
+            `Showing ${count} employee${count === 1 ? "" : "s"} on page ${employeePage}.`;
+    }
+
+
+    function applyEmployeeFilters() {
+
+        const fromDate =
+            document.getElementById(
+                "employeeJoiningFrom"
+            ).value;
+
+        const toDate =
+            document.getElementById(
+                "employeeJoiningTo"
+            ).value;
+
+        if (
+            fromDate &&
+            toDate &&
+            fromDate > toDate
+        ) {
+
+            showMessage(
+                "employeeMessage",
+                "Joining Date From cannot be later than Joining Date To.",
+                false
+            );
+
+            return;
+        }
+
+        employeePage = 1;
+
+        loadEmployees(1);
+    }
+
+
+    function resetEmployeeFilters() {
+
+        document.getElementById(
+            "employeeSearch"
+        ).value = "";
+
+        document.getElementById(
+            "employeeDepartmentFilter"
+        ).value = "";
+
+        document.getElementById(
+            "employeeManagerFilter"
+        ).value = "";
+
+        document.getElementById(
+            "employeeStatusFilter"
+        ).value = "";
+
+        document.getElementById(
+            "employeeJoiningFrom"
+        ).value = "";
+
+        document.getElementById(
+            "employeeJoiningTo"
+        ).value = "";
+
+        document.getElementById(
+            "employeeSkillsFilter"
+        ).value = "";
+
+        document.getElementById(
+            "employeeSortBy"
+        ).value = "id";
+
+        document.getElementById(
+            "employeeSortOrder"
+        ).value = "asc";
+
+        document.getElementById(
+            "employeePageSize"
+        ).value = "10";
+
+        employeePage = 1;
+
+        loadEmployees(1);
+    }
+
+
+    function changeEmployeePage(direction) {
+
+        const nextPage =
+            employeePage + direction;
+
+        if (nextPage < 1) {
+            return;
+        }
+
+        if (
+            direction > 0 &&
+            !employeeHasNextPage
+        ) {
+            return;
+        }
+
+        loadEmployees(nextPage);
+    }
+
+
+    async function loadDepartments() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/departments/`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+            if (!response.ok) {
+                return;
+            }
+
+            departments =
+                await response.json();
+
+            // Employee form department dropdown.
+            const select =
+                document.getElementById(
+                    "employeeDepartment"
+                );
+
+            if (select) {
+
+                const currentValue =
+                    select.value;
+
+                select.innerHTML =
+                    `<option value="">
+                        Select Department
+                    </option>`;
+
+                departments.forEach(department => {
+
+                    select.innerHTML += `
+                        <option value="${department.id}">
+                            ${escapeHtml(department.name)}
+                        </option>
+                    `;
+
+                });
+
+                if (currentValue) {
+                    select.value = currentValue;
+                }
+            }
+
+            // Employee list department filter.
+            const filter =
+                document.getElementById(
+                    "employeeDepartmentFilter"
+                );
+
+            if (filter) {
+
+                const currentFilter =
+                    filter.value;
+
+                filter.innerHTML =
+                    `<option value="">
+                        All Departments
+                    </option>`;
+
+                departments.forEach(department => {
+
+                    filter.innerHTML += `
+                        <option value="${department.id}">
+                            ${escapeHtml(department.name)}
+                        </option>
+                    `;
+
+                });
+
+                if (currentFilter) {
+                    filter.value = currentFilter;
+                }
+            }
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Department error:",
+                error
+            );
+
+        }
+
+    }
+
+
+    function populateEmployeeDropdowns() {
+
+        const attendanceSelect =
+            document.getElementById(
+                "attendanceEmployee"
+            );
+
+        const taskSelect =
+            document.getElementById(
+                "taskEmployee"
+            );
+
+        const employeeList =
+            Array.isArray(employees)
+                ? employees
+                : [];
+
+        const options =
+            employeeList
+                .map(employee => `
+
+                    <option value="${employee.id}">
+                        ${escapeHtml(employee.name)}
+                    </option>
+
+                `)
+                .join("");
+
+        const optionHtml =
+            `<option value="">
+                Select Employee
+            </option>
+            ${options}`;
+
+        if (attendanceSelect) {
+            attendanceSelect.innerHTML =
+                optionHtml;
+        }
+
+        if (taskSelect) {
+            taskSelect.innerHTML =
+                optionHtml;
+        }
+
+    }
+
+
+    function populateManagerDropdown(
+        currentEmployeeId = null
+    ) {
+
+        const managerSelect =
+            document.getElementById(
+                "employeeManager"
+            );
+
+        if (!managerSelect) {
+            return;
+        }
+
+        const options =
+            employees
+                .filter(employee =>
+                    !currentEmployeeId ||
+                    employee.id !== Number(currentEmployeeId)
+                )
+                .map(employee => `
+
+                    <option value="${employee.id}">
+                        ${escapeHtml(employee.name)}
+                    </option>
+
+                `)
+                .join("");
+
+        managerSelect.innerHTML =
+            `<option value="">
+                Select Manager
+            </option>
+            ${options}`;
+
+    }
+
+
+    function openEmployeeModal(
+        employee = null
+    ) {
+
+        document.getElementById(
+            "employeeModal"
+        ).style.display =
+            "block";
+
+        document.getElementById(
+            "employeeModalTitle"
+        ).textContent =
+            employee
+                ? "Edit Employee"
+                : "Add Employee";
+
+        document.getElementById(
+            "employeeId"
+        ).value =
+            employee
+                ? employee.id
+                : "";
+
+        document.getElementById(
+            "employeeName"
+        ).value =
+            employee
+                ? employee.name
+                : "";
+
+        document.getElementById(
+            "employeeEmail"
+        ).value =
+            employee
+                ? employee.email
+                : "";
+
+        document.getElementById(
+            "employeeAge"
+        ).value =
+            employee
+                ? employee.age
+                : "";
+
+        document.getElementById(
+            "employeeSalary"
+        ).value =
+            employee
+                ? employee.salary
+                : "";
+
+        document.getElementById(
+            "employeeStatus"
+        ).value =
+            employee && employee.status
+                ? employee.status
+                : "Active";
+
+        document.getElementById(
+            "employeeJoiningDate"
+        ).value =
+            employee && employee.joining_date
+                ? employee.joining_date
+                : "";
+
+        document.getElementById(
+            "employeeDepartment"
+        ).value =
+            employee &&
+            employee.department_id
+                ? employee.department_id
+                : "";
+
+        populateManagerDropdown(
+            employee
+                ? employee.id
+                : null
+        );
+
+        document.getElementById(
+            "employeeManager"
+        ).value =
+            employee &&
+            employee.manager_id
+                ? employee.manager_id
+                : "";
+
+        document.getElementById(
+            "employeeSkills"
+        ).value =
+            employee && employee.skills
+                ? employee.skills
+                : "";
+
+        document.getElementById(
+            "employeeProfileMetadata"
+        ).value =
+            employee && employee.profile_metadata
+                ? JSON.stringify(
+                    employee.profile_metadata,
+                    null,
+                    2
+                )
+                : "";
+    }
+
+
+    function closeEmployeeModal() {
+
+        document.getElementById(
+            "employeeModal"
+        ).style.display =
+            "none";
+
+    }
+
+
+    function editEmployee(id) {
+
+        const employee =
+            employees.find(
+                item => item.id === id
+            );
+
+        if (employee) {
+
+            openEmployeeModal(
+                employee
+            );
+
+        }
+
+    }
+
+
+    async function saveEmployee() {
+
+        const id =
+            document.getElementById(
+                "employeeId"
+            ).value;
+
+        const name =
+            document.getElementById(
+                "employeeName"
+            ).value.trim();
+
+        const email =
+            document.getElementById(
+                "employeeEmail"
+            ).value.trim();
+
+        const age =
+            Number(
+                document.getElementById(
+                    "employeeAge"
+                ).value
+            );
+
+        const salary =
+            Number(
+                document.getElementById(
+                    "employeeSalary"
+                ).value
+            );
+
+        const departmentValue =
+            document.getElementById(
+                "employeeDepartment"
+            ).value;
+
+        const managerValue =
+            document.getElementById(
+                "employeeManager"
+            ).value;
+
+        const status =
+            document.getElementById(
+                "employeeStatus"
+            ).value;
+
+        const joiningDate =
+            document.getElementById(
+                "employeeJoiningDate"
+            ).value;
+
+        const skills =
+            document.getElementById(
+                "employeeSkills"
+            ).value.trim();
+
+        const profileMetadataText =
+            document.getElementById(
+                "employeeProfileMetadata"
+            ).value.trim();
+
+        if (!name) {
+
+            alert(
+                "Please enter employee name."
+            );
+
+            return;
+        }
+
+        if (!email) {
+
+            alert(
+                "Please enter employee email."
+            );
+
+            return;
+        }
+
+        if (
+            !age ||
+            age < 18 ||
+            age > 100
+        ) {
+
+            alert(
+                "Please enter a valid age between 18 and 100."
+            );
+
+            return;
+        }
+
+        if (
+            salary < 0 ||
+            Number.isNaN(salary)
+        ) {
+
+            alert(
+                "Please enter a valid salary."
+            );
+
+            return;
+        }
+
+        if (
+            joiningDate &&
+            joiningDate > new Date().toISOString().split("T")[0]
+        ) {
+
+            alert(
+                "Joining date cannot be in the future."
+            );
+
+            return;
+        }
+
+        if (
+            id &&
+            managerValue &&
+            Number(managerValue) === Number(id)
+        ) {
+
+            alert(
+                "An employee cannot be their own manager."
+            );
+
+            return;
+        }
+
+        let profileMetadata = null;
+
+        if (profileMetadataText) {
+
+            try {
+
+                profileMetadata =
+                    JSON.parse(
+                        profileMetadataText
+                    );
+
+                if (
+                    typeof profileMetadata !== "object" ||
+                    profileMetadata === null ||
+                    Array.isArray(profileMetadata)
+                ) {
+
+                    throw new Error(
+                        "Profile metadata must be a JSON object."
+                    );
+                }
+
+            }
+
+            catch (error) {
+
+                alert(
+                    "Profile Metadata must contain valid JSON object data."
+                );
+
+                return;
+            }
+        }
+
+        const data = {
+
+            name: name,
+
+            email: email,
+
+            age: age,
+
+            salary: salary,
+
+            department_id:
+                departmentValue
+                    ? Number(departmentValue)
+                    : null,
+
+            manager_id:
+                managerValue
+                    ? Number(managerValue)
+                    : null,
+
+            status:
+                status,
+
+            joining_date:
+                joiningDate || null,
+
+            skills:
+                skills || null,
+
+            profile_metadata:
+                profileMetadata
+        };
+
+        try {
+
+            const url =
+                id
+                    ? `${API}/api/employees/${id}`
+                    : `${API}/api/employees/`;
+
+            const method =
+                id
+                    ? "PUT"
+                    : "POST";
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method: method,
+
+                        headers:
+                            authHeaders(),
+
+                        body:
+                            JSON.stringify(data)
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to save employee."
+                );
+            }
+
+            closeEmployeeModal();
+
+            await loadEmployees(employeePage);
+
+            await loadDashboard();
+
+            showMessage(
+                "employeeMessage",
+                id
+                    ? "Employee updated successfully."
+                    : "Employee created successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Save employee error:",
+                error
+            );
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+    async function deleteEmployee(id) {
+
+        if (
+            !confirm(
+                "Are you sure you want to delete this employee?"
+            )
+        ) {
+
+            return;
+        }
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/employees/${id}`,
+                    {
+                        method: "DELETE",
+
+                        headers:
+                            authHeaders()
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to delete employee."
+                );
+            }
+
+            // If the last employee on a page was deleted,
+            // move back one page when appropriate.
+            if (
+                employeePage > 1 &&
+                employees.length === 1
+            ) {
+                employeePage -= 1;
+            }
+
+            await loadEmployees(employeePage);
+
+            await loadDashboard();
+
+            showMessage(
+                "employeeMessage",
+                "Employee deleted successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+
+    function searchEmployees() {
+        applyEmployeeFilters();
+    }
+
+    /* =========================================================
+       ATTENDANCE
+    ========================================================= */
+
+    async function loadAttendance() {
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/attendance/`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Failed to load attendance."
+                );
+
+            }
+
+
+            attendanceRecords =
+                await response.json();
+
+
+            displayAttendance();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+            showMessage(
+                "attendanceMessage",
+                error.message,
+                false
+            );
+
+        }
+
+    }
+
+
+    function displayAttendance(
+        recordList = attendanceRecords
+    ) {
+
+        const container =
+            document.getElementById(
+                "attendanceTableContainer"
+            );
+
+
+        if (!recordList.length) {
+
+            container.innerHTML =
+                `<div class="empty">
+                    No attendance records found.
+                </div>`;
+
+            return;
+
+        }
+
+
+        let html = `
+
+            <div style="overflow-x:auto;">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+                        <th>Employee</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Check In</th>
+                        <th>Check Out</th>
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+
+        recordList.forEach(record => {
+
+            const employeeName =
+                record.employee_name ||
+                getEmployeeName(
+                    record.employee_id
+                );
+
+
+            let statusClass =
+                "badge-present";
+
+
+            if (
+                record.status ===
+                "Absent"
+            ) {
+
+                statusClass =
+                    "badge-absent";
+
+            }
+
+
+            html += `
+
+                <tr>
+
+                    <td>${record.id}</td>
+
+                    <td>
+                        ${escapeHtml(employeeName)}
+                    </td>
+
+                    <td>
+                        ${record.attendance_date}
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge ${statusClass}"
+                        >
+                            ${escapeHtml(record.status)}
+                        </span>
+
+                    </td>
+
+                    <td>
+                        ${record.check_in || "-"}
+                    </td>
+
+                    <td>
+                        ${record.check_out || "-"}
+                    </td>
+
+                    <td>
+
+                        <div class="action-buttons">
+
+                            <button
+                                class="btn-warning"
+                                onclick="editAttendance(${record.id})"
+                            >
+                                Edit
+                            </button>
+
+                            ${
+                                currentUser &&
+                                currentUser.role === "Admin"
+                                    ? `
+                                        <button
+                                            class="btn-danger"
+                                            onclick="deleteAttendance(${record.id})"
+                                        >
+                                            Delete
+                                        </button>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
+
+
+        html += `
+                </tbody>
+            </table>
+
+            </div>
+        `;
+
+
+        container.innerHTML =
+            html;
+
+    }
+
+
+    function searchAttendance() {
+
+        const search =
+            document.getElementById(
+                "attendanceSearch"
+            ).value
+                .toLowerCase()
+                .trim();
+
+
+        if (!search) {
+
+            displayAttendance();
+
+            return;
+
+        }
+
+
+        const filtered =
+            attendanceRecords.filter(
+                record => {
+
+                    const employeeName =
+                        record.employee_name ||
+                        getEmployeeName(
+                            record.employee_id
+                        );
+
+
+                    return (
+
+                        employeeName
+                            .toLowerCase()
+                            .includes(search)
+
+                        ||
+
+                        String(record.status)
+                            .toLowerCase()
+                            .includes(search)
+
+                        ||
+
+                        String(
+                            record.attendance_date
+                        ).includes(search)
+
+                    );
+
+                }
+            );
+
+
+        displayAttendance(
+            filtered
+        );
+
+    }
+
+
+    function openAttendanceModal(
+        record = null
+    ) {
+
+        document.getElementById(
+            "attendanceModal"
+        ).style.display =
+            "block";
+
+
+        document.getElementById(
+            "attendanceModalTitle"
+        ).textContent =
+            record
+                ? "Edit Attendance"
+                : "Add Attendance";
+
+
+        document.getElementById(
+            "attendanceId"
+        ).value =
+            record
+                ? record.id
+                : "";
+
+
+        document.getElementById(
+            "attendanceEmployee"
+        ).value =
+            record
+                ? record.employee_id
+                : "";
+
+
+        document.getElementById(
+            "attendanceDate"
+        ).value =
+            record
+                ? record.attendance_date
+                : new Date()
+                    .toISOString()
+                    .split("T")[0];
+
+
+        document.getElementById(
+            "attendanceStatus"
+        ).value =
+            record
+                ? record.status
+                : "Present";
+
+
+        document.getElementById(
+            "attendanceCheckIn"
+        ).value =
+            record &&
+            record.check_in
+                ? record.check_in
+                : "";
+
+
+        document.getElementById(
+            "attendanceCheckOut"
+        ).value =
+            record &&
+            record.check_out
+                ? record.check_out
+                : "";
+
+    }
+
+
+    function closeAttendanceModal() {
+
+        document.getElementById(
+            "attendanceModal"
+        ).style.display =
+            "none";
+
+    }
+
+
+    function editAttendance(id) {
+
+        const record =
+            attendanceRecords.find(
+                item => item.id === id
+            );
+
+
+        if (record) {
+
+            openAttendanceModal(
+                record
+            );
+
+        }
+
+    }
+
+
+    async function saveAttendance() {
+
+        const id =
+            document.getElementById(
+                "attendanceId"
+            ).value;
+
+
+        const employeeId =
+            Number(
+                document.getElementById(
+                    "attendanceEmployee"
+                ).value
+            );
+
+
+        const attendanceDate =
+            document.getElementById(
+                "attendanceDate"
+            ).value;
+
+
+        const status =
+            document.getElementById(
+                "attendanceStatus"
+            ).value;
+
+
+        const checkIn =
+            document.getElementById(
+                "attendanceCheckIn"
+            ).value;
+
+
+        const checkOut =
+            document.getElementById(
+                "attendanceCheckOut"
+            ).value;
+
+
+        if (!employeeId) {
+
+            alert(
+                "Please select an employee."
+            );
+
+            return;
+
+        }
+
+
+        if (!attendanceDate) {
+
+            alert(
+                "Please select attendance date."
+            );
+
+            return;
+
+        }
+
+
+        const data = {
+
+            employee_id:
+                employeeId,
+
+            attendance_date:
+                attendanceDate,
+
+            status:
+                status,
+
+            check_in:
+                checkIn || null,
+
+            check_out:
+                checkOut || null
+
+        };
+
+
+        try {
+
+            const url =
+                id
+                    ? `${API}/api/attendance/${id}`
+                    : `${API}/api/attendance/`;
+
+
+            const method =
+                id
+                    ? "PUT"
+                    : "POST";
+
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method: method,
+
+                        headers:
+                            authHeaders(),
+
+                        body:
+                            JSON.stringify(data)
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to save attendance."
+                );
+
+            }
+
+
+            closeAttendanceModal();
+
+            await loadAttendance();
+
+            await loadDashboard();
+
+
+            showMessage(
+                "attendanceMessage",
+                id
+                    ? "Attendance updated successfully."
+                    : "Attendance created successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+    async function deleteAttendance(id) {
+
+        if (
+            !confirm(
+                "Are you sure you want to delete this attendance record?"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/attendance/${id}`,
+                    {
+                        method: "DELETE",
+
+                        headers:
+                            authHeaders()
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to delete attendance."
+                );
+
+            }
+
+
+            await loadAttendance();
+
+            await loadDashboard();
+
+
+            showMessage(
+                "attendanceMessage",
+                "Attendance deleted successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       TASKS
+    ========================================================= */
+
+    async function loadTasks() {
+
+        try {
+
+            /*
+             * Task Management can be opened directly from the sidebar.
+             * Make sure the employee list is loaded before displaying
+             * tasks or opening the Add Task modal.
+             */
+            if (!Array.isArray(employees) || employees.length === 0) {
+
+                const employeeResponse =
+                    await fetch(
+                        `${API}/api/employees/`,
+                        {
+                            headers: {
+                                "Authorization":
+                                    `Bearer ${getToken()}`
+                            }
+                        }
+                    );
+
+                if (!employeeResponse.ok) {
+
+                    throw new Error(
+                        "Failed to load employees for Task Management."
+                    );
+
+                }
+
+                employees =
+                    await employeeResponse.json();
+
+            }
+
+            populateEmployeeDropdowns();
+
+            const response =
+                await fetch(
+                    `${API}/api/tasks/`,
+                    {
+                        headers: {
+                            "Authorization":
+                                `Bearer ${getToken()}`
+                        }
+                    }
+                );
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    "Failed to load tasks."
+                );
+
+            }
+
+
+            tasks =
+                await response.json();
+
+
+            displayTasks();
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Task loading error:",
+                error
+            );
+
+            showMessage(
+                "taskMessage",
+                error.message,
+                false
+            );
+
+        }
+
+    }
+
+
+    function displayTasks(
+        taskList = tasks
+    ) {
+
+        const container =
+            document.getElementById(
+                "taskTableContainer"
+            );
+
+
+        if (!taskList.length) {
+
+            container.innerHTML =
+                `<div class="empty">
+                    No tasks found.
+                </div>`;
+
+            return;
+
+        }
+
+
+        let html = `
+
+            <div style="overflow-x:auto;">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>ID</th>
+                        <th>Employee</th>
+                        <th>Task</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Due Date</th>
+                        <th>Actions</th>
+
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+        `;
+
+
+        taskList.forEach(task => {
+
+            const priorityClass =
+                getPriorityClass(
+                    task.priority
+                );
+
+
+            const statusClass =
+                getStatusClass(
+                    task.status
+                );
+
+
+            const employeeName =
+                task.employee_name ||
+                getEmployeeName(
+                    task.employee_id
+                );
+
+
+            html += `
+
+                <tr>
+
+                    <td>
+                        ${task.id}
+                    </td>
+
+                    <td>
+                        ${escapeHtml(employeeName)}
+                    </td>
+
+                    <td>
+
+                        <strong>
+                            ${escapeHtml(task.title)}
+                        </strong>
+
+                        ${
+                            task.description
+                                ? `
+                                    <br>
+                                    <small>
+                                        ${escapeHtml(
+                                            task.description
+                                        )}
+                                    </small>
+                                `
+                                : ""
+                        }
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge ${priorityClass}"
+                        >
+                            ${escapeHtml(
+                                task.priority
+                            )}
+                        </span>
+
+                    </td>
+
+                    <td>
+
+                        <span
+                            class="badge ${statusClass}"
+                        >
+                            ${escapeHtml(
+                                task.status
+                            )}
+                        </span>
+
+                    </td>
+
+                    <td>
+                        ${task.due_date}
+                    </td>
+
+                    <td>
+
+                        <div class="action-buttons">
+
+                            <button
+                                class="btn-warning"
+                                onclick="editTask(${task.id})"
+                            >
+                                Edit
+                            </button>
+
+                            ${
+                                currentUser &&
+                                currentUser.role === "Admin"
+                                    ? `
+                                        <button
+                                            class="btn-danger"
+                                            onclick="deleteTask(${task.id})"
+                                        >
+                                            Delete
+                                        </button>
+                                      `
+                                    : ""
+                            }
+
+                        </div>
+
+                    </td>
+
+                </tr>
+
+            `;
+
+        });
+
+
+        html += `
+                </tbody>
+            </table>
+
+            </div>
+        `;
+
+
+        container.innerHTML =
+            html;
+
+    }
+
+
+    function searchTasks() {
+
+        const search =
+            document.getElementById(
+                "taskSearch"
+            ).value
+                .toLowerCase()
+                .trim();
+
+
+        if (!search) {
+
+            displayTasks();
+
+            return;
+
+        }
+
+
+        const filtered =
+            tasks.filter(task => {
+
+                const employeeName =
+                    task.employee_name ||
+                    getEmployeeName(
+                        task.employee_id
+                    );
+
+
+                return (
+
+                    String(task.id)
+                        .includes(search)
+
+                    ||
+
+                    String(task.title)
+                        .toLowerCase()
+                        .includes(search)
+
+                    ||
+
+                    String(employeeName)
+                        .toLowerCase()
+                        .includes(search)
+
+                    ||
+
+                    String(task.priority)
+                        .toLowerCase()
+                        .includes(search)
+
+                    ||
+
+                    String(task.status)
+                        .toLowerCase()
+                        .includes(search)
+
+                );
+
+            });
+
+
+        displayTasks(
+            filtered
+        );
+
+    }
+
+
+    function getPriorityClass(
+        priority
+    ) {
+
+        if (
+            priority === "High"
+        ) {
+
+            return "badge-high";
+
+        }
+
+
+        if (
+            priority === "Low"
+        ) {
+
+            return "badge-low";
+
+        }
+
+
+        return "badge-medium";
+
+    }
+
+
+    function getStatusClass(
+        status
+    ) {
+
+        if (
+            status === "Completed"
+        ) {
+
+            return "badge-completed";
+
+        }
+
+
+        if (
+            status === "In Progress"
+        ) {
+
+            return "badge-progress";
+
+        }
+
+
+        return "badge-pending";
+
+    }
+
+
+    function openTaskModal(
+        task = null
+    ) {
+
+        // Ensure the employee dropdown contains current employees.
+        populateEmployeeDropdowns();
+
+        document.getElementById(
+            "taskModal"
+        ).style.display =
+            "block";
+
+
+        document.getElementById(
+            "taskModalTitle"
+        ).textContent =
+            task
+                ? "Edit Task"
+                : "Add Task";
+
+
+        document.getElementById(
+            "taskId"
+        ).value =
+            task
+                ? task.id
+                : "";
+
+
+        document.getElementById(
+            "taskEmployee"
+        ).value =
+            task
+                ? task.employee_id
+                : "";
+
+
+        document.getElementById(
+            "taskTitle"
+        ).value =
+            task
+                ? task.title
+                : "";
+
+
+        document.getElementById(
+            "taskDescription"
+        ).value =
+            task
+                ? task.description || ""
+                : "";
+
+
+        document.getElementById(
+            "taskPriority"
+        ).value =
+            task
+                ? task.priority
+                : "Medium";
+
+
+        document.getElementById(
+            "taskStatus"
+        ).value =
+            task
+                ? task.status
+                : "Pending";
+
+
+        document.getElementById(
+            "taskDueDate"
+        ).value =
+            task
+                ? task.due_date
+                : "";
+
+    }
+
+
+    function closeTaskModal() {
+
+        document.getElementById(
+            "taskModal"
+        ).style.display =
+            "none";
+
+    }
+
+
+    function editTask(id) {
+
+        const task =
+            tasks.find(
+                item => item.id === id
+            );
+
+
+        if (task) {
+
+            openTaskModal(
+                task
+            );
+
+        }
+
+    }
+
+
+    async function saveTask() {
+
+        const id =
+            document.getElementById(
+                "taskId"
+            ).value;
+
+
+        const employeeId =
+            Number(
+                document.getElementById(
+                    "taskEmployee"
+                ).value
+            );
+
+
+        const title =
+            document.getElementById(
+                "taskTitle"
+            ).value.trim();
+
+
+        const description =
+            document.getElementById(
+                "taskDescription"
+            ).value.trim();
+
+
+        const priority =
+            document.getElementById(
+                "taskPriority"
+            ).value;
+
+
+        const status =
+            document.getElementById(
+                "taskStatus"
+            ).value;
+
+
+        const dueDate =
+            document.getElementById(
+                "taskDueDate"
+            ).value;
+
+
+        if (!employeeId) {
+
+            alert(
+                "Please select an employee."
+            );
+
+            return;
+
+        }
+
+
+        if (!title) {
+
+            alert(
+                "Please enter task title."
+            );
+
+            return;
+
+        }
+
+
+        if (!dueDate) {
+
+            alert(
+                "Please select due date."
+            );
+
+            return;
+
+        }
+
+
+        const data = {
+
+            employee_id:
+                employeeId,
+
+            title:
+                title,
+
+            description:
+                description || null,
+
+            priority:
+                priority,
+
+            status:
+                status,
+
+            due_date:
+                dueDate
+
+        };
+
+
+        try {
+
+            const url =
+                id
+                    ? `${API}/api/tasks/${id}`
+                    : `${API}/api/tasks/`;
+
+
+            const method =
+                id
+                    ? "PUT"
+                    : "POST";
+
+
+            const response =
+                await fetch(
+                    url,
+                    {
+                        method: method,
+
+                        headers:
+                            authHeaders(),
+
+                        body:
+                            JSON.stringify(data)
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to save task."
+                );
+
+            }
+
+
+            closeTaskModal();
+
+            await loadTasks();
+
+            await loadDashboard();
+
+
+            showMessage(
+                "taskMessage",
+                id
+                    ? "Task updated successfully."
+                    : "Task created successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                "Save task error:",
+                error
+            );
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+    async function deleteTask(id) {
+
+        if (
+            !confirm(
+                "Are you sure you want to delete this task?"
+            )
+        ) {
+
+            return;
+
+        }
+
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/tasks/${id}`,
+                    {
+                        method: "DELETE",
+
+                        headers:
+                            authHeaders()
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Failed to delete task."
+                );
+
+            }
+
+
+            await loadTasks();
+
+            await loadDashboard();
+
+
+            showMessage(
+                "taskMessage",
+                "Task deleted successfully.",
+                true
+            );
+
+        }
+
+        catch (error) {
+
+            console.error(
+                error
+            );
+
+            alert(
+                error.message
+            );
+
+        }
+
+    }
+
+
+    /* =========================================================
+       MODAL CLOSE WHEN CLICKING OUTSIDE
+    ========================================================= */
+
+    window.onclick = function(event) {
+
+        const employeeModal =
+            document.getElementById(
+                "employeeModal"
+            );
+
+        const attendanceModal =
+            document.getElementById(
+                "attendanceModal"
+            );
+
+        const taskModal =
+            document.getElementById(
+                "taskModal"
+            );
+
+        const departmentModal =
+            document.getElementById(
+                "departmentModal"
+            );
+
+        const notificationPanel =
+            document.getElementById(
+                "notificationPanel"
+            );
+
+        const notificationButton =
+            document.getElementById(
+                "notificationButton"
+            );
+
+
+        if (
+            event.target ===
+            employeeModal
+        ) {
+
+            closeEmployeeModal();
+
+        }
+
+
+        if (
+            event.target ===
+            attendanceModal
+        ) {
+
+            closeAttendanceModal();
+
+        }
+
+
+        if (
+            event.target ===
+            taskModal
+        ) {
+
+            closeTaskModal();
+
+        }
+
+        if (
+            event.target ===
+            departmentModal
+        ) {
+
+            closeDepartmentModal();
+
+        }
+
+
+        if (
+            notificationPanel &&
+            notificationButton &&
+            !notificationPanel.contains(event.target) &&
+            !notificationButton.contains(event.target)
+        ) {
+
+            notificationPanel.style.display = "none";
+
+        }
+
+    };
+
+
+    /* =========================================================
+       ENTER KEY LOGIN
+    ========================================================= */
+
+    document
+        .getElementById("loginPassword")
+        .addEventListener(
+            "keydown",
+            function(event) {
+
+                if (
+                    event.key === "Enter"
+                ) {
+
+                    loginUser();
+
+                }
+
+            }
+        );
+
+
+    /* =========================================================
+       START APPLICATION
+    ========================================================= */
+
+    document.addEventListener(
+        "DOMContentLoaded",
+        async function() {
+
+            const authenticated =
+                await loadCurrentUser();
+
+
+            if (authenticated) {
+
+                await initializeApplication();
+
+            }
+
+            else {
+
+                showLogin();
+
+            }
+
+        }
+    );
+
+
+    /* =========================================================
+       USER ACCOUNT
+    ========================================================= */
+
+    async function openAccountModal() {
+
+        const modal =
+            document.getElementById("accountModal");
+
+        const message =
+            document.getElementById("accountMessage");
+
+        message.style.display = "none";
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/auth/me`,
+                    {
+                        headers: authHeaders()
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+                throw new Error(
+                    result.detail ||
+                    "Failed to load account information."
+                );
+            }
+
+            document.getElementById(
+                "accountUsername"
+            ).value =
+                result.username || "";
+
+            document.getElementById(
+                "accountEmail"
+            ).value =
+                result.email || "";
+
+            document.getElementById(
+                "accountRole"
+            ).value =
+                result.role || "";
+
+            document.getElementById(
+                "currentPassword"
+            ).value = "";
+
+            document.getElementById(
+                "newPassword"
+            ).value = "";
+
+            document.getElementById(
+                "confirmNewPassword"
+            ).value = "";
+
+            modal.style.display = "block";
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                "accountMessage",
+                error.message,
+                false
+            );
+
+            modal.style.display = "block";
+
+        }
+
+    }
+
+
+    function closeAccountModal() {
+
+        document.getElementById(
+            "accountModal"
+        ).style.display = "none";
+
+    }
+
+
+    async function changePassword() {
+
+        const currentPassword =
+            document.getElementById(
+                "currentPassword"
+            ).value;
+
+        const newPassword =
+            document.getElementById(
+                "newPassword"
+            ).value;
+
+        const confirmNewPassword =
+            document.getElementById(
+                "confirmNewPassword"
+            ).value;
+
+        if (!currentPassword ||
+            !newPassword ||
+            !confirmNewPassword) {
+
+            showMessage(
+                "accountMessage",
+                "All password fields are required.",
+                false
+            );
+
+            return;
+
+        }
+
+        if (newPassword.length < 8) {
+
+            showMessage(
+                "accountMessage",
+                "New password must be at least 8 characters.",
+                false
+            );
+
+            return;
+
+        }
+
+        if (newPassword !== confirmNewPassword) {
+
+            showMessage(
+                "accountMessage",
+                "New passwords do not match.",
+                false
+            );
+
+            return;
+
+        }
+
+        if (currentPassword === newPassword) {
+
+            showMessage(
+                "accountMessage",
+                "New password must be different from the current password.",
+                false
+            );
+
+            return;
+
+        }
+
+        try {
+
+            const response =
+                await fetch(
+                    `${API}/api/auth/change-password`,
+                    {
+                        method: "POST",
+                        headers: {
+                            ...authHeaders(),
+                            "Content-Type":
+                                "application/json"
+                        },
+                        body: JSON.stringify({
+
+                            current_password:
+                                currentPassword,
+
+                            new_password:
+                                newPassword
+
+                        })
+                    }
+                );
+
+            const result =
+                await response.json();
+
+            if (!response.ok) {
+
+                throw new Error(
+                    result.detail ||
+                    "Password change failed."
+                );
+
+            }
+
+            showMessage(
+                "accountMessage",
+                "Password changed successfully. Please log in again with your new password.",
+                true
+            );
+
+            setTimeout(function() {
+
+                closeAccountModal();
+                logout();
+
+            }, 1800);
+
+        }
+
+        catch (error) {
+
+            showMessage(
+                "accountMessage",
+                error.message,
+                false
+            );
+
+        }
+
+    }
+
+
+</script>
+
+
+<!-- =========================================================
+     USER ACCOUNT / CHANGE PASSWORD MODAL
+========================================================= -->
+
+<div
+    id="accountModal"
+    class="modal"
+    style="display:none;"
+>
+
+    <div class="modal-content">
+
+        <div class="modal-header">
+
+            <h2>My Account</h2>
+
+            <button
+                class="close-btn"
+                onclick="closeAccountModal()"
+                type="button"
+            >
+                ×
+            </button>
+
+        </div>
+
+        <div
+            id="accountMessage"
+            class="message"
+        ></div>
+
+        <div class="account-details">
+
+            <div class="form-group">
+
+                <label>Username</label>
+
+                <input
+                    id="accountUsername"
+                    type="text"
+                    readonly
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Email</label>
+
+                <input
+                    id="accountEmail"
+                    type="email"
+                    readonly
+                >
+
+            </div>
+
+            <div class="form-group">
+
+                <label>Role</label>
+
+                <input
+                    id="accountRole"
+                    type="text"
+                    readonly
+                >
+
+            </div>
+
+        </div>
+
+        <hr style="margin:20px 0;">
+
+        <h3>Change Password</h3>
+
+        <div class="form-group">
+
+            <label for="currentPassword">
+                Current Password
+            </label>
+
+            <input
+                id="currentPassword"
+                type="password"
+                placeholder="Enter current password"
+                autocomplete="current-password"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label for="newPassword">
+                New Password
+            </label>
+
+            <input
+                id="newPassword"
+                type="password"
+                placeholder="Enter new password"
+                autocomplete="new-password"
+            >
+
+        </div>
+
+        <div class="form-group">
+
+            <label for="confirmNewPassword">
+                Confirm New Password
+            </label>
+
+            <input
+                id="confirmNewPassword"
+                type="password"
+                placeholder="Confirm new password"
+                autocomplete="new-password"
+            >
+
+        </div>
+
+        <div style="display:flex; gap:10px;">
+
+            <button
+                class="btn-primary"
+                onclick="changePassword()"
+                type="button"
+            >
+                Change Password
+            </button>
+
+            <button
+                class="btn-secondary"
+                onclick="closeAccountModal()"
+                type="button"
+            >
+                Cancel
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>
