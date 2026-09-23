@@ -5,6 +5,7 @@ import uuid
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
 
 from slowapi import Limiter
@@ -35,6 +36,13 @@ from backend.routers import reports
 from backend.routers import auth
 from backend.routers import audit_logs
 from backend.routers import notifications
+
+from backend.config import (
+    ENVIRONMENT,
+    DEBUG,
+    ALLOWED_ORIGINS,
+    ALLOWED_HOSTS
+)
 
 
 # ============================================================
@@ -75,8 +83,21 @@ Base.metadata.create_all(
 
 app = FastAPI(
     title="Workforce Management Platform",
-    version="1.0.0"
+    version="1.0.0",
+    debug=DEBUG
 )
+
+
+# ============================================================
+# PRODUCTION HOST PROTECTION
+# ============================================================
+
+if ENVIRONMENT == "production":
+
+    app.add_middleware(
+        TrustedHostMiddleware,
+        allowed_hosts=ALLOWED_HOSTS
+    )
 
 
 # ============================================================
@@ -99,16 +120,9 @@ app.add_exception_handler(
 # CORS
 # ============================================================
 
-origins = [
-    "http://127.0.0.1:8000",
-    "http://localhost:8000",
-    "http://127.0.0.1:5501",
-    "http://localhost:5501"
-]
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=[
         "GET",
@@ -136,6 +150,7 @@ async def security_headers(
     request: Request,
     call_next
 ):
+
     response = await call_next(request)
 
     # Prevent browsers from MIME-sniffing responses
@@ -180,6 +195,7 @@ async def authentication_rate_limit(
     request: Request,
     call_next
 ):
+
     protected_paths = {
         "/api/auth/login",
         "/api/auth/register",
@@ -191,7 +207,10 @@ async def authentication_rate_limit(
     # --------------------------------------------------------
 
     if TESTING:
-        return await call_next(request)
+
+        return await call_next(
+            request
+        )
 
     # --------------------------------------------------------
     # NORMAL APPLICATION MODE
@@ -217,6 +236,7 @@ async def authentication_rate_limit(
 
         # Keep only requests from the last
         # AUTH_RATE_WINDOW seconds
+
         previous_requests = [
             timestamp
             for timestamp in previous_requests
@@ -227,6 +247,7 @@ async def authentication_rate_limit(
         ]
 
         # Reject if limit is reached
+
         if len(previous_requests) >= AUTH_RATE_LIMIT:
 
             logger.warning(
@@ -263,7 +284,9 @@ async def authentication_rate_limit(
             client_ip
         ] = previous_requests
 
-    return await call_next(request)
+    return await call_next(
+        request
+    )
 
 
 # ============================================================
@@ -275,19 +298,23 @@ async def log_requests(
     request: Request,
     call_next
 ):
+
     # Use client-provided request ID when available.
     # Otherwise generate a new UUID.
+
     request_id = request.headers.get(
         "X-Request-ID"
     )
 
     if not request_id:
+
         request_id = str(
             uuid.uuid4()
         )
 
     # Store request ID in ContextVar so every log
     # generated during this request can use it.
+
     request_id_context.set(
         request_id
     )
@@ -306,6 +333,7 @@ async def log_requests(
         )
 
         # Return request ID to the client.
+
         response.headers[
             "X-Request-ID"
         ] = request_id
@@ -350,6 +378,7 @@ async def log_requests(
     finally:
 
         # Clear request context after request finishes.
+
         request_id_context.set("-")
 
 

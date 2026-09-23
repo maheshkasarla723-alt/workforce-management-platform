@@ -1,7 +1,4 @@
 from datetime import datetime, timedelta
-import os
-
-from dotenv import load_dotenv
 
 from fastapi import (
     APIRouter,
@@ -26,12 +23,11 @@ from sqlalchemy.orm import Session
 from backend.database import get_db
 from backend.user_models import User
 
-
-# ============================================================
-# LOAD ENVIRONMENT VARIABLES
-# ============================================================
-
-load_dotenv()
+from backend.config import (
+    SECRET_KEY,
+    ALGORITHM,
+    ACCESS_TOKEN_EXPIRE_MINUTES
+)
 
 
 # ============================================================
@@ -41,32 +37,6 @@ load_dotenv()
 router = APIRouter(
     prefix="/api/auth",
     tags=["Authentication"]
-)
-
-
-# ============================================================
-# SECURITY CONFIGURATION
-# ============================================================
-
-SECRET_KEY = os.getenv("SECRET_KEY")
-
-if not SECRET_KEY:
-    raise RuntimeError(
-        "SECRET_KEY is not configured in the .env file."
-    )
-
-
-ALGORITHM = os.getenv(
-    "ALGORITHM",
-    "HS256"
-)
-
-
-ACCESS_TOKEN_EXPIRE_MINUTES = int(
-    os.getenv(
-        "ACCESS_TOKEN_EXPIRE_MINUTES",
-        "60"
-    )
 )
 
 
