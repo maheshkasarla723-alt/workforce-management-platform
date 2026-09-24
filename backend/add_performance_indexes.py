@@ -1,13 +1,18 @@
-from sqlalchemy import text
+from sqlalchemy import inspect, text
 
 from backend.database import engine
 
 
+# ============================================================
+# PERFORMANCE INDEX DEFINITIONS
+# ============================================================
+
 INDEXES = [
-    # =========================================================
+
+    # ========================================================
     # EMPLOYEES
-    # Used by status filtering
-    # =========================================================
+    # ========================================================
+
     (
         "ix_employees_status",
         """
@@ -16,7 +21,6 @@ INDEXES = [
         """
     ),
 
-    # Used by joining-date range filtering
     (
         "ix_employees_joining_date",
         """
@@ -25,7 +29,6 @@ INDEXES = [
         """
     ),
 
-    # Used by department + status filtering
     (
         "ix_employees_department_status",
         """
@@ -34,7 +37,6 @@ INDEXES = [
         """
     ),
 
-    # Used by manager + status filtering
     (
         "ix_employees_manager_status",
         """
@@ -43,7 +45,6 @@ INDEXES = [
         """
     ),
 
-    # Used by manager relationship lookups
     (
         "ix_employees_manager_id",
         """
@@ -52,9 +53,10 @@ INDEXES = [
         """
     ),
 
-    # =========================================================
+    # ========================================================
     # ATTENDANCE
-    # =========================================================
+    # ========================================================
+
     (
         "ix_attendance_employee_id",
         """
@@ -79,9 +81,10 @@ INDEXES = [
         """
     ),
 
-    # =========================================================
+    # ========================================================
     # TASKS
-    # =========================================================
+    # ========================================================
+
     (
         "ix_tasks_employee_id",
         """
@@ -122,10 +125,10 @@ INDEXES = [
         """
     ),
 
-    # =========================================================
+    # ========================================================
     # NOTIFICATIONS
-    # Used to load notifications for the logged-in user
-    # =========================================================
+    # ========================================================
+
     (
         "ix_notifications_user_id",
         """
@@ -134,10 +137,10 @@ INDEXES = [
         """
     ),
 
-    # =========================================================
+    # ========================================================
     # AUDIT LOGS
-    # Used by audit-history filtering and ordering
-    # =========================================================
+    # ========================================================
+
     (
         "ix_audit_logs_user_id",
         """
@@ -180,43 +183,137 @@ INDEXES = [
 ]
 
 
-def main():
-    print("=" * 60)
-    print("Starting performance index migration...")
-    print("=" * 60)
+# ============================================================
+# VERIFY INDEX
+# ============================================================
 
-    created = 0
-    skipped = 0
+def index_exists(connection, index_name):
+    """
+    Check whether an index exists in the current database.
+    """
+
+    inspector = inspect(connection)
+
+    for table_name in inspector.get_table_names():
+
+        indexes = inspector.get_indexes(table_name)
+
+        for index in indexes:
+
+            if index["name"] == index_name:
+                return True
+
+    return False
+
+
+# ============================================================
+# CREATE INDEXES
+# ============================================================
+
+def create_indexes():
+
+    print("=" * 70)
+    print("WORKFORCE MANAGEMENT PLATFORM")
+    print("PERFORMANCE INDEX MIGRATION")
+    print("=" * 70)
+
+    # --------------------------------------------------------
+    # Make sure we are using PostgreSQL
+    # --------------------------------------------------------
+
+    if engine.dialect.name != "postgresql":
+
+        raise RuntimeError(
+            "Performance index migration requires PostgreSQL. "
+            f"Current database: {engine.dialect.name}"
+        )
+
+    print(
+        f"Database dialect: {engine.dialect.name}"
+    )
+
+    successful = 0
+    failed = 0
+
+    # --------------------------------------------------------
+    # Create indexes
+    # --------------------------------------------------------
 
     with engine.begin() as connection:
 
         for index_name, sql in INDEXES:
 
             try:
-                connection.execute(text(sql))
 
-                print(
-                    f"[OK] Index ready: {index_name}"
+                connection.execute(
+                    text(sql)
                 )
 
-                created += 1
+                if index_exists(
+                    connection,
+                    index_name
+                ):
+
+                    print(
+                        f"[OK] {index_name}"
+                    )
+
+                    successful += 1
+
+                else:
+
+                    print(
+                        f"[WARNING] {index_name} "
+                        "was not found after creation"
+                    )
+
+                    failed += 1
 
             except Exception as error:
 
                 print(
-                    f"[WARNING] Could not create "
-                    f"{index_name}: {error}"
+                    f"[ERROR] {index_name}"
                 )
 
-                skipped += 1
+                print(
+                    f"        {error}"
+                )
 
-    print("=" * 60)
-    print("Performance index migration completed.")
-    print(f"Indexes processed: {len(INDEXES)}")
-    print(f"Successful: {created}")
-    print(f"Warnings: {skipped}")
-    print("=" * 60)
+                failed += 1
 
+    # --------------------------------------------------------
+    # Summary
+    # --------------------------------------------------------
+
+    print("=" * 70)
+    print("PERFORMANCE INDEX MIGRATION COMPLETE")
+    print("=" * 70)
+
+    print(
+        f"Total indexes : {len(INDEXES)}"
+    )
+
+    print(
+        f"Successful    : {successful}"
+    )
+
+    print(
+        f"Failed        : {failed}"
+    )
+
+    print("=" * 70)
+
+    if failed > 0:
+
+        raise RuntimeError(
+            f"{failed} performance index(es) failed."
+        )
+
+
+# ============================================================
+# ENTRY POINT
+# ============================================================
 
 if __name__ == "__main__":
-    main()
+
+    create_indexes()

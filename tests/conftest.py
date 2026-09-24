@@ -3,21 +3,24 @@ import sys
 from pathlib import Path
 
 import pytest
-from dotenv import dotenv_values
-from sqlalchemy.engine import make_url
+
+from sqlalchemy import create_engine, event
+from sqlalchemy.ext.compiler import compiles
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
 
-# ------------------------------------------------------------
+# ============================================================
 # TESTING MODE
-# ------------------------------------------------------------
+# ============================================================
 
 os.environ["TESTING"] = "1"
 
 
-# ------------------------------------------------------------
+# ============================================================
 # PROJECT ROOT
-# ------------------------------------------------------------
+# ============================================================
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 
@@ -25,60 +28,69 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 
-# ------------------------------------------------------------
-# DATABASE CONFIGURATION
-# ------------------------------------------------------------
+# ============================================================
+# SQLITE COMPATIBILITY FOR POSTGRESQL JSONB
+# ============================================================
 #
-# Local development:
-#     DATABASE_URL is read from .env
+# Production uses PostgreSQL.
+# SQLite does not have PostgreSQL's JSONB type.
 #
-# GitHub Actions:
-#     DATABASE_URL is provided by the CI workflow environment
-# ------------------------------------------------------------
+# For tests only, compile JSONB as SQLite JSON.
+# The production model is NOT changed.
+# ============================================================
 
-env_file = PROJECT_ROOT / ".env"
+@compiles(JSONB, "sqlite")
+def compile_jsonb_for_sqlite(type_, compiler, **kwargs):
+    return "JSON"
 
-env_values = dotenv_values(env_file)
 
-database_url = os.getenv("DATABASE_URL") or env_values.get(
-    "DATABASE_URL"
+# ============================================================
+# TEST DATABASE
+# ============================================================
+
+TEST_DATABASE_URL = "sqlite://"
+
+
+# ============================================================
+# TEST ENGINE
+# ============================================================
+
+test_engine = create_engine(
+    TEST_DATABASE_URL,
+    connect_args={"check_same_thread": False},
+    poolclass=StaticPool,
 )
 
-if not database_url:
-    raise ValueError(
-        "DATABASE_URL is not configured. "
-        "Set DATABASE_URL in .env or the CI environment."
+
+# ============================================================
+# SQLITE FOREIGN KEYS
+# ============================================================
+
+@event.listens_for(test_engine, "connect")
+def enable_sqlite_foreign_keys(
+    dbapi_connection,
+    connection_record
+):
+    cursor = dbapi_connection.cursor()
+
+    cursor.execute(
+        "PRAGMA foreign_keys=ON"
     )
 
-
-# ------------------------------------------------------------
-# TEST DATABASE
-# ------------------------------------------------------------
-#
-# Always use a separate test database.
-# The tests will create/drop tables in this database only.
-# ------------------------------------------------------------
-
-test_database_url = make_url(database_url).set(
-    database="workforce_management_test"
-)
-
-os.environ["DATABASE_URL"] = test_database_url.render_as_string(
-    hide_password=False
-)
+    cursor.close()
 
 
-# ------------------------------------------------------------
+# ============================================================
 # IMPORT APPLICATION
-# ------------------------------------------------------------
+# ============================================================
 
 from backend.main import app
-from backend.database import Base, engine, get_db
+from backend.database import Base, get_db
 
 
-# ------------------------------------------------------------
-# CREATE TEST DATABASE TABLES
-# ------------------------------------------------------------
+# ============================================================
+# CREATE TEST TABLES
+# ============================================================
 
 @pytest.fixture(
     scope="session",
@@ -87,30 +99,36 @@ from backend.database import Base, engine, get_db
 def create_test_database():
 
     Base.metadata.drop_all(
-        bind=engine
+        bind=test_engine
     )
 
     Base.metadata.create_all(
-        bind=engine
+        bind=test_engine
     )
 
     yield
 
     Base.metadata.drop_all(
-        bind=engine
+        bind=test_engine
     )
 
 
-# ------------------------------------------------------------
-# DATABASE SESSION FIXTURE
-# ------------------------------------------------------------
+# ============================================================
+# DATABASE SESSION
+# ============================================================
 
 @pytest.fixture()
 def db_session():
 
-    from backend.database import SessionLocal
+    from sqlalchemy.orm import sessionmaker
 
-    db = SessionLocal()
+    TestingSessionLocal = sessionmaker(
+        autocommit=False,
+        autoflush=False,
+        bind=test_engine,
+    )
+
+    db = TestingSessionLocal()
 
     try:
         yield db
@@ -119,9 +137,9 @@ def db_session():
         db.close()
 
 
-# ------------------------------------------------------------
+# ============================================================
 # FASTAPI TEST CLIENT
-# ------------------------------------------------------------
+# ============================================================
 
 @pytest.fixture()
 def client(db_session):

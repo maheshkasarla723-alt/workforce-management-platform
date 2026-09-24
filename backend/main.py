@@ -7,6 +7,9 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -15,7 +18,7 @@ from slowapi import _rate_limit_exceeded_handler
 
 from backend.logging_config import (
     setup_logging,
-    request_id_context
+    request_id_context,
 )
 
 from backend.database import Base, engine
@@ -41,7 +44,7 @@ from backend.config import (
     ENVIRONMENT,
     DEBUG,
     ALLOWED_ORIGINS,
-    ALLOWED_HOSTS
+    ALLOWED_HOSTS,
 )
 
 
@@ -60,11 +63,11 @@ logger = logging.getLogger(__name__)
 
 TESTING = os.getenv(
     "TESTING",
-    "0"
+    "0",
 ).lower() in {
     "1",
     "true",
-    "yes"
+    "yes",
 }
 
 
@@ -84,7 +87,7 @@ Base.metadata.create_all(
 app = FastAPI(
     title="Workforce Management Platform",
     version="1.0.0",
-    debug=DEBUG
+    debug=DEBUG,
 )
 
 
@@ -96,7 +99,7 @@ if ENVIRONMENT == "production":
 
     app.add_middleware(
         TrustedHostMiddleware,
-        allowed_hosts=ALLOWED_HOSTS
+        allowed_hosts=ALLOWED_HOSTS,
     )
 
 
@@ -105,14 +108,14 @@ if ENVIRONMENT == "production":
 # ============================================================
 
 limiter = Limiter(
-    key_func=get_remote_address
+    key_func=get_remote_address,
 )
 
 app.state.limiter = limiter
 
 app.add_exception_handler(
     RateLimitExceeded,
-    _rate_limit_exceeded_handler
+    _rate_limit_exceeded_handler,
 )
 
 
@@ -130,15 +133,182 @@ app.add_middleware(
         "PUT",
         "PATCH",
         "DELETE",
-        "OPTIONS"
+        "OPTIONS",
     ],
     allow_headers=[
         "Authorization",
         "Content-Type",
         "Accept",
-        "X-Request-ID"
-    ]
+        "X-Request-ID",
+    ],
 )
+
+
+# ============================================================
+# SAFE ERROR HANDLERS
+# ============================================================
+
+@app.exception_handler(
+    StarletteHTTPException
+)
+async def http_exception_handler(
+    request: Request,
+    exc: StarletteHTTPException,
+):
+    """
+    Return safe HTTP errors without exposing
+    internal implementation details.
+    """
+
+    request_id = request.headers.get(
+        "X-Request-ID"
+    )
+
+    if not request_id:
+        request_id = str(
+            uuid.uuid4()
+        )
+
+    # Keep expected client errors safe.
+    if isinstance(exc.detail, str):
+        detail = exc.detail
+    else:
+        detail = "Request could not be completed."
+
+    response = JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "detail": detail,
+            "request_id": request_id,
+        },
+    )
+
+    response.headers[
+        "X-Request-ID"
+    ] = request_id
+
+    if exc.headers:
+        for key, value in exc.headers.items():
+            response.headers[key] = value
+
+    return response
+
+
+@app.exception_handler(
+    RequestValidationError
+)
+async def validation_exception_handler(
+    request: Request,
+    exc: RequestValidationError,
+):
+    """
+    Return safe validation errors.
+
+    Do not expose server internals, SQL statements,
+    file paths, passwords, tokens, or stack traces.
+    """
+
+    request_id = request.headers.get(
+        "X-Request-ID"
+    )
+
+    if not request_id:
+        request_id = str(
+            uuid.uuid4()
+        )
+
+    errors = []
+
+    for error in exc.errors():
+
+        location = ".".join(
+            str(item)
+            for item in error.get(
+                "loc",
+                [],
+            )
+        )
+
+        errors.append(
+            {
+                "field": location,
+                "message": error.get(
+                    "msg",
+                    "Invalid value",
+                ),
+                "type": error.get(
+                    "type",
+                    "validation_error",
+                ),
+            }
+        )
+
+    response = JSONResponse(
+        status_code=422,
+        content={
+            "detail": "Validation error",
+            "errors": errors,
+            "request_id": request_id,
+        },
+    )
+
+    response.headers[
+        "X-Request-ID"
+    ] = request_id
+
+    return response
+
+
+@app.exception_handler(
+    Exception
+)
+async def unhandled_exception_handler(
+    request: Request,
+    exc: Exception,
+):
+    """
+    Catch unexpected server errors.
+
+    Detailed exception information is written only
+    to server logs. The client receives a generic
+    safe response.
+    """
+
+    request_id = request.headers.get(
+        "X-Request-ID"
+    )
+
+    if not request_id:
+        request_id = str(
+            uuid.uuid4()
+        )
+
+    logger.exception(
+        "Unhandled application exception",
+        extra={
+            "request_method": request.method,
+            "request_path": request.url.path,
+            "status_code": 500,
+            "request_id": request_id,
+        },
+    )
+
+    response = JSONResponse(
+        status_code=500,
+        content={
+            "detail": (
+                "An internal server error occurred. "
+                "Please try again later."
+            ),
+            "request_id": request_id,
+        },
+    )
+
+    response.headers[
+        "X-Request-ID"
+    ] = request_id
+
+    return response
 
 
 # ============================================================
@@ -148,27 +318,28 @@ app.add_middleware(
 @app.middleware("http")
 async def security_headers(
     request: Request,
-    call_next
+    call_next,
 ):
+    response = await call_next(
+        request
+    )
 
-    response = await call_next(request)
-
-    # Prevent browsers from MIME-sniffing responses
+    # Prevent MIME sniffing
     response.headers[
         "X-Content-Type-Options"
     ] = "nosniff"
 
-    # Prevent the application from being embedded in frames
+    # Prevent clickjacking
     response.headers[
         "X-Frame-Options"
     ] = "DENY"
 
-    # Control referrer information
+    # Referrer protection
     response.headers[
         "Referrer-Policy"
     ] = "strict-origin-when-cross-origin"
 
-    # Disable unnecessary browser capabilities
+    # Browser permissions
     response.headers[
         "Permissions-Policy"
     ] = (
@@ -177,11 +348,36 @@ async def security_headers(
         "camera=()"
     )
 
+    # Content Security Policy
+    response.headers[
+        "Content-Security-Policy"
+    ] = (
+        "default-src 'self'; "
+        "img-src 'self' data:; "
+        "style-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "connect-src 'self'; "
+        "font-src 'self' data:; "
+        "frame-ancestors 'none'; "
+        "base-uri 'self'; "
+        "form-action 'self'"
+    )
+
+    # HSTS only in production
+    if ENVIRONMENT == "production":
+
+        response.headers[
+            "Strict-Transport-Security"
+        ] = (
+            "max-age=31536000; "
+            "includeSubDomains"
+        )
+
     return response
 
 
 # ============================================================
-# AUTHENTICATION RATE-LIMITING MIDDLEWARE
+# AUTHENTICATION RATE LIMITING
 # ============================================================
 
 AUTH_RATE_LIMIT = 5
@@ -193,28 +389,20 @@ auth_request_log = {}
 @app.middleware("http")
 async def authentication_rate_limit(
     request: Request,
-    call_next
+    call_next,
 ):
-
     protected_paths = {
         "/api/auth/login",
         "/api/auth/register",
-        "/api/auth/change-password"
+        "/api/auth/change-password",
     }
 
-    # --------------------------------------------------------
-    # TEST MODE
-    # --------------------------------------------------------
-
+    # Testing bypass
     if TESTING:
 
         return await call_next(
             request
         )
-
-    # --------------------------------------------------------
-    # NORMAL APPLICATION MODE
-    # --------------------------------------------------------
 
     if (
         request.method == "POST"
@@ -230,13 +418,12 @@ async def authentication_rate_limit(
         previous_requests = (
             auth_request_log.get(
                 client_ip,
-                []
+                [],
             )
         )
 
-        # Keep only requests from the last
-        # AUTH_RATE_WINDOW seconds
-
+        # Keep only requests inside
+        # the current rate-limit window.
         previous_requests = [
             timestamp
             for timestamp in previous_requests
@@ -246,20 +433,19 @@ async def authentication_rate_limit(
             )
         ]
 
-        # Reject if limit is reached
-
-        if len(previous_requests) >= AUTH_RATE_LIMIT:
+        if (
+            len(previous_requests)
+            >= AUTH_RATE_LIMIT
+        ):
 
             logger.warning(
                 "Authentication rate limit exceeded",
                 extra={
                     "request_method": request.method,
                     "request_path": request.url.path,
-                    "status_code": 429
-                }
+                    "status_code": 429,
+                },
             )
-
-            from fastapi.responses import JSONResponse
 
             return JSONResponse(
                 status_code=429,
@@ -273,7 +459,7 @@ async def authentication_rate_limit(
                     "Retry-After": str(
                         AUTH_RATE_WINDOW
                     )
-                }
+                },
             )
 
         previous_requests.append(
@@ -296,24 +482,16 @@ async def authentication_rate_limit(
 @app.middleware("http")
 async def log_requests(
     request: Request,
-    call_next
+    call_next,
 ):
-
-    # Use client-provided request ID when available.
-    # Otherwise generate a new UUID.
-
     request_id = request.headers.get(
         "X-Request-ID"
     )
 
     if not request_id:
-
         request_id = str(
             uuid.uuid4()
         )
-
-    # Store request ID in ContextVar so every log
-    # generated during this request can use it.
 
     request_id_context.set(
         request_id
@@ -332,8 +510,6 @@ async def log_requests(
             - start_time
         )
 
-        # Return request ID to the client.
-
         response.headers[
             "X-Request-ID"
         ] = request_id
@@ -346,9 +522,10 @@ async def log_requests(
                 "status_code": response.status_code,
                 "duration_seconds": round(
                     duration,
-                    4
-                )
-            }
+                    4,
+                ),
+                "request_id": request_id,
+            },
         )
 
         return response
@@ -368,18 +545,19 @@ async def log_requests(
                 "status_code": 500,
                 "duration_seconds": round(
                     duration,
-                    4
-                )
-            }
+                    4,
+                ),
+                "request_id": request_id,
+            },
         )
 
         raise
 
     finally:
 
-        # Clear request context after request finishes.
-
-        request_id_context.set("-")
+        request_id_context.set(
+            "-"
+        )
 
 
 # ============================================================
@@ -427,9 +605,9 @@ app.mount(
     "/frontend",
     StaticFiles(
         directory="frontend",
-        html=True
+        html=True,
     ),
-    name="frontend"
+    name="frontend",
 )
 
 
