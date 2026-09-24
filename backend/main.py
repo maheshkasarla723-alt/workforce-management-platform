@@ -7,7 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
@@ -354,8 +354,8 @@ async def security_headers(
     ] = (
         "default-src 'self'; "
         "img-src 'self' data:; "
-        "style-src 'self' 'unsafe-inline'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; "
         "connect-src 'self'; "
         "font-src 'self' data:; "
         "frame-ancestors 'none'; "
@@ -618,8 +618,26 @@ app.mount(
 @app.get("/")
 def home():
 
-    logger.info(
-        "Root API endpoint accessed"
+    frontend_index = os.path.abspath(
+        os.path.join(
+            os.path.dirname(__file__),
+            "..",
+            "frontend",
+            "index.html",
+        )
+    )
+
+    if os.path.isfile(frontend_index):
+        logger.info(
+            "Frontend index served"
+        )
+        return FileResponse(
+            frontend_index,
+            media_type="text/html",
+        )
+
+    logger.warning(
+        "Frontend index.html not found"
     )
 
     return {

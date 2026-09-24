@@ -12,13 +12,12 @@ def test_health_check(client):
     assert response.json()["status"] == "healthy"
 
 
-def test_root_api(client):
+def test_root_serves_frontend(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert response.json()["message"] == (
-        "Workforce Management Platform API is running"
-    )
+    assert "text/html" in response.headers.get("content-type", "")
+    assert "Workforce Management" in response.text
 
 
 # ============================================================
