@@ -4,7 +4,6 @@ from backend.database import Base
 
 
 class User(Base):
-
     __tablename__ = "users"
 
     id = Column(
@@ -36,4 +35,11 @@ class User(Base):
         String(50),
         nullable=False,
         default="Employee"
+    )
+
+    token_version = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        server_default="0"
     )
