@@ -3,7 +3,7 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, EmailStr
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.orm import Session, joinedload
 
 from backend.database import get_db
@@ -16,9 +16,13 @@ from backend.services.permissions import (
 )
 
 
+# ============================================================
+# ROUTER
+# ============================================================
+
 router = APIRouter(
     prefix="/api/employees",
-    tags=["Employees"]
+    tags=["Employees"],
 )
 
 
@@ -62,7 +66,7 @@ def create_audit_log(
     current_user,
     action: str,
     entity_id: int,
-    details: str
+    details: str,
 ):
     audit_log = AuditLog(
         user_id=current_user.id,
@@ -70,10 +74,91 @@ def create_audit_log(
         action=action,
         entity="Employee",
         entity_id=entity_id,
-        details=details
+        details=details,
     )
 
     db.add(audit_log)
+
+
+# ============================================================
+# MANAGER VALIDATION
+# ============================================================
+
+def validate_manager_assignment(
+    employee_id: int | None,
+    manager_id: int | None,
+    db: Session,
+):
+    """
+    Validate manager assignment.
+
+    Prevents:
+    - An employee managing themselves.
+    - Circular manager relationships such as:
+      A -> B -> C -> A
+    """
+
+    if manager_id is None:
+        return
+
+    if employee_id is not None and manager_id == employee_id:
+        raise HTTPException(
+            status_code=400,
+            detail="An employee cannot be their own manager",
+        )
+
+    manager = (
+        db.query(Employee)
+        .filter(Employee.id == manager_id)
+        .first()
+    )
+
+    if not manager:
+        raise HTTPException(
+            status_code=404,
+            detail="Manager employee not found",
+        )
+
+    # --------------------------------------------------------
+    # Detect circular manager relationships.
+    #
+    # Example:
+    # Employee 1 -> Manager 2
+    # Employee 2 -> Manager 3
+    # Employee 3 -> Manager 1
+    #
+    # Assigning employee 1 to manager 2 would create a cycle.
+    # --------------------------------------------------------
+
+    visited: set[int] = set()
+    current_manager_id: int | None = manager_id
+
+    while current_manager_id is not None:
+
+        if current_manager_id in visited:
+            raise HTTPException(
+                status_code=409,
+                detail="Existing manager hierarchy contains a circular reference",
+            )
+
+        visited.add(current_manager_id)
+
+        if employee_id is not None and current_manager_id == employee_id:
+            raise HTTPException(
+                status_code=409,
+                detail="Manager assignment would create a circular hierarchy",
+            )
+
+        next_manager = (
+            db.query(Employee.manager_id)
+            .filter(Employee.id == current_manager_id)
+            .first()
+        )
+
+        if not next_manager:
+            break
+
+        current_manager_id = next_manager[0]
 
 
 # ============================================================
@@ -83,47 +168,47 @@ def create_audit_log(
 def validate_employee_data(
     employee_data: EmployeeCreate,
     db: Session,
-    employee_id: int | None = None
+    employee_id: int | None = None,
 ):
-    # -----------------------------
-    # Name
-    # -----------------------------
+    # ========================================================
+    # NAME
+    # ========================================================
 
     if not employee_data.name.strip():
         raise HTTPException(
             status_code=400,
-            detail="Employee name cannot be empty"
+            detail="Employee name cannot be empty",
         )
 
     if len(employee_data.name.strip()) > 100:
         raise HTTPException(
             status_code=400,
-            detail="Employee name cannot exceed 100 characters"
+            detail="Employee name cannot exceed 100 characters",
         )
 
-    # -----------------------------
-    # Age
-    # -----------------------------
+    # ========================================================
+    # AGE
+    # ========================================================
 
     if employee_data.age < 18 or employee_data.age > 100:
         raise HTTPException(
             status_code=400,
-            detail="Employee age must be between 18 and 100"
+            detail="Employee age must be between 18 and 100",
         )
 
-    # -----------------------------
-    # Salary
-    # -----------------------------
+    # ========================================================
+    # SALARY
+    # ========================================================
 
     if employee_data.salary < 0:
         raise HTTPException(
             status_code=400,
-            detail="Salary cannot be negative"
+            detail="Salary cannot be negative",
         )
 
-    # -----------------------------
-    # Status
-    # -----------------------------
+    # ========================================================
+    # STATUS
+    # ========================================================
 
     if employee_data.status not in VALID_STATUSES:
         raise HTTPException(
@@ -132,23 +217,23 @@ def validate_employee_data(
                 "Invalid employee status. "
                 "Allowed values: Active, Inactive, "
                 "On Leave, Terminated"
-            )
+            ),
         )
 
-    # -----------------------------
-    # Joining Date
-    # -----------------------------
+    # ========================================================
+    # JOINING DATE
+    # ========================================================
 
     if employee_data.joining_date is not None:
         if employee_data.joining_date > date.today():
             raise HTTPException(
                 status_code=400,
-                detail="Joining date cannot be in the future"
+                detail="Joining date cannot be in the future",
             )
 
-    # -----------------------------
-    # Skills
-    # -----------------------------
+    # ========================================================
+    # SKILLS
+    # ========================================================
 
     if employee_data.skills is not None:
         employee_data.skills = employee_data.skills.strip()
@@ -156,26 +241,25 @@ def validate_employee_data(
         if len(employee_data.skills) > 2000:
             raise HTTPException(
                 status_code=400,
-                detail="Skills cannot exceed 2000 characters"
+                detail="Skills cannot exceed 2000 characters",
             )
 
-    # -----------------------------
-    # Profile Metadata
-    # -----------------------------
+    # ========================================================
+    # PROFILE METADATA
+    # ========================================================
 
     if employee_data.profile_metadata is not None:
         if not isinstance(employee_data.profile_metadata, dict):
             raise HTTPException(
                 status_code=400,
-                detail="Profile metadata must be a JSON object"
+                detail="Profile metadata must be a JSON object",
             )
 
-    # -----------------------------
-    # Department validation
-    # -----------------------------
+    # ========================================================
+    # DEPARTMENT VALIDATION
+    # ========================================================
 
     if employee_data.department_id is not None:
-
         department = (
             db.query(Department)
             .filter(
@@ -187,37 +271,18 @@ def validate_employee_data(
         if not department:
             raise HTTPException(
                 status_code=404,
-                detail="Department not found"
+                detail="Department not found",
             )
 
-    # -----------------------------
-    # Manager validation
-    # -----------------------------
+    # ========================================================
+    # MANAGER VALIDATION
+    # ========================================================
 
-    if employee_data.manager_id is not None:
-
-        if (
-            employee_id is not None
-            and employee_data.manager_id == employee_id
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="An employee cannot be their own manager"
-            )
-
-        manager = (
-            db.query(Employee)
-            .filter(
-                Employee.id == employee_data.manager_id
-            )
-            .first()
-        )
-
-        if not manager:
-            raise HTTPException(
-                status_code=404,
-                detail="Manager employee not found"
-            )
+    validate_manager_assignment(
+        employee_id=employee_id,
+        manager_id=employee_data.manager_id,
+        db=db,
+    )
 
 
 # ============================================================
@@ -233,11 +298,13 @@ def employee_response(employee: Employee):
         "salary": employee.salary,
 
         "status": employee.status,
+
         "joining_date": (
             employee.joining_date.isoformat()
             if employee.joining_date
             else None
         ),
+
         "skills": employee.skills,
         "profile_metadata": employee.profile_metadata,
 
@@ -255,11 +322,11 @@ def employee_response(employee: Employee):
             {
                 "id": employee.department.id,
                 "name": employee.department.name,
-                "description": employee.department.description
+                "description": employee.department.description,
             }
             if employee.department
             else None
-        )
+        ),
     }
 
 
@@ -272,31 +339,31 @@ def employee_response(employee: Employee):
 def get_employees(
     search: str | None = Query(
         default=None,
-        description="Search employee name, email or skills"
+        description="Search employee name, email or skills",
     ),
 
     department_id: int | None = Query(
-        default=None
+        default=None,
     ),
 
     manager_id: int | None = Query(
-        default=None
+        default=None,
     ),
 
     status: str | None = Query(
-        default=None
+        default=None,
     ),
 
     joining_date_from: date | None = Query(
-        default=None
+        default=None,
     ),
 
     joining_date_to: date | None = Query(
-        default=None
+        default=None,
     ),
 
     skills: str | None = Query(
-        default=None
+        default=None,
     ),
 
     sort_by: Literal[
@@ -306,34 +373,33 @@ def get_employees(
         "age",
         "salary",
         "status",
-        "joining_date"
+        "joining_date",
     ] = Query(
-        default="id"
+        default="id",
     ),
 
     sort_order: Literal[
         "asc",
-        "desc"
+        "desc",
     ] = Query(
-        default="asc"
+        default="asc",
     ),
 
     page: int = Query(
         default=1,
-        ge=1
+        ge=1,
     ),
 
     limit: int = Query(
         default=50,
         ge=1,
-        le=100
+        le=100,
     ),
 
     db: Session = Depends(get_db),
 
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
-
     # ========================================================
     # BASE QUERY
     # ========================================================
@@ -342,7 +408,7 @@ def get_employees(
         db.query(Employee)
         .options(
             joinedload(Employee.department),
-            joinedload(Employee.manager)
+            joinedload(Employee.manager),
         )
     )
 
@@ -351,11 +417,9 @@ def get_employees(
     # ========================================================
 
     if search:
-
         search_value = search.strip()
 
         if search_value:
-
             search_pattern = f"%{search_value}%"
 
             query = query.filter(
@@ -373,7 +437,6 @@ def get_employees(
     # ========================================================
 
     if department_id is not None:
-
         query = query.filter(
             Employee.department_id == department_id
         )
@@ -383,7 +446,6 @@ def get_employees(
     # ========================================================
 
     if manager_id is not None:
-
         query = query.filter(
             Employee.manager_id == manager_id
         )
@@ -393,15 +455,13 @@ def get_employees(
     # ========================================================
 
     if status:
-
         if status not in VALID_STATUSES:
-
             raise HTTPException(
                 status_code=400,
                 detail=(
                     "Invalid status. Allowed values: "
                     "Active, Inactive, On Leave, Terminated"
-                )
+                ),
             )
 
         query = query.filter(
@@ -413,13 +473,11 @@ def get_employees(
     # ========================================================
 
     if joining_date_from is not None:
-
         query = query.filter(
             Employee.joining_date >= joining_date_from
         )
 
     if joining_date_to is not None:
-
         query = query.filter(
             Employee.joining_date <= joining_date_to
         )
@@ -429,13 +487,12 @@ def get_employees(
         and joining_date_to is not None
         and joining_date_from > joining_date_to
     ):
-
         raise HTTPException(
             status_code=400,
             detail=(
                 "joining_date_from cannot be later "
                 "than joining_date_to"
-            )
+            ),
         )
 
     # ========================================================
@@ -443,11 +500,9 @@ def get_employees(
     # ========================================================
 
     if skills:
-
         skills_value = skills.strip()
 
         if skills_value:
-
             query = query.filter(
                 Employee.skills.ilike(
                     f"%{skills_value}%"
@@ -460,17 +515,14 @@ def get_employees(
 
     sort_column = getattr(
         Employee,
-        sort_by
+        sort_by,
     )
 
     if sort_order == "desc":
-
         query = query.order_by(
             sort_column.desc()
         )
-
     else:
-
         query = query.order_by(
             sort_column.asc()
         )
@@ -506,17 +558,20 @@ def get_employees(
 def create_employee(
     employee: EmployeeCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
-
-    # Validate fields and relationships
+    # ========================================================
+    # VALIDATE
+    # ========================================================
 
     validate_employee_data(
         employee,
-        db
+        db,
     )
 
-    # Check duplicate email
+    # ========================================================
+    # DUPLICATE EMAIL CHECK
+    # ========================================================
 
     existing_employee = (
         db.query(Employee)
@@ -527,13 +582,14 @@ def create_employee(
     )
 
     if existing_employee:
-
         raise HTTPException(
             status_code=409,
-            detail="Employee email already exists"
+            detail="Employee email already exists",
         )
 
-    # Create employee
+    # ========================================================
+    # CREATE EMPLOYEE
+    # ========================================================
 
     new_employee = Employee(
         name=employee.name.strip(),
@@ -547,12 +603,16 @@ def create_employee(
         profile_metadata=employee.profile_metadata,
 
         department_id=employee.department_id,
-        manager_id=employee.manager_id
+        manager_id=employee.manager_id,
     )
 
     db.add(new_employee)
 
     try:
+        # ----------------------------------------------------
+        # Flush first so the employee ID is available
+        # for the audit record.
+        # ----------------------------------------------------
 
         db.flush()
 
@@ -564,25 +624,39 @@ def create_employee(
             details=(
                 f"Employee '{new_employee.name}' "
                 f"was created"
-            )
+            ),
         )
+
+        # ----------------------------------------------------
+        # Employee + audit log are committed atomically.
+        # ----------------------------------------------------
 
         db.commit()
 
     except IntegrityError:
-
         db.rollback()
 
         raise HTTPException(
             status_code=409,
-            detail="Employee could not be created because of a database constraint"
+            detail=(
+                "Employee could not be created "
+                "because of a database constraint"
+            ),
+        )
+
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Employee could not be created",
         )
 
     db.refresh(new_employee)
 
     return {
         "message": "Employee created successfully",
-        "employee": employee_response(new_employee)
+        "employee": employee_response(new_employee),
     }
 
 
@@ -594,14 +668,13 @@ def create_employee(
 def get_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
-
     employee = (
         db.query(Employee)
         .options(
             joinedload(Employee.department),
-            joinedload(Employee.manager)
+            joinedload(Employee.manager),
         )
         .filter(
             Employee.id == employee_id
@@ -610,10 +683,9 @@ def get_employee(
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=404,
-            detail="Employee not found"
+            detail="Employee not found",
         )
 
     return employee_response(employee)
@@ -628,8 +700,11 @@ def update_employee(
     employee_id: int,
     employee_data: EmployeeCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
+    # ========================================================
+    # FIND EMPLOYEE
+    # ========================================================
 
     employee = (
         db.query(Employee)
@@ -640,88 +715,105 @@ def update_employee(
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=404,
-            detail="Employee not found"
+            detail="Employee not found",
         )
 
-    # Validate all fields and relationships
+    # ========================================================
+    # VALIDATE
+    # ========================================================
 
     validate_employee_data(
         employee_data,
         db,
-        employee_id=employee_id
+        employee_id=employee_id,
     )
 
-    # Check duplicate email
+    # ========================================================
+    # DUPLICATE EMAIL CHECK
+    # ========================================================
 
     existing_email = (
         db.query(Employee)
         .filter(
             Employee.email == employee_data.email,
-            Employee.id != employee_id
+            Employee.id != employee_id,
         )
         .first()
     )
 
     if existing_email:
-
         raise HTTPException(
             status_code=409,
             detail=(
                 "Another employee already uses this email"
-            )
+            ),
         )
 
-    # Update basic fields
+    # ========================================================
+    # UPDATE EMPLOYEE
+    # ========================================================
 
     employee.name = employee_data.name.strip()
     employee.email = employee_data.email
     employee.age = employee_data.age
     employee.salary = employee_data.salary
 
-    # Update Level 5.1 fields
-
     employee.status = employee_data.status
     employee.joining_date = employee_data.joining_date
     employee.skills = employee_data.skills
     employee.profile_metadata = employee_data.profile_metadata
 
-    # Update relationships
-
     employee.department_id = employee_data.department_id
     employee.manager_id = employee_data.manager_id
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        action="UPDATE",
-        entity_id=employee.id,
-        details=(
-            f"Employee '{employee.name}' "
-            f"was updated"
-        )
-    )
-
     try:
+        # ----------------------------------------------------
+        # Audit log is part of the same transaction.
+        # ----------------------------------------------------
+
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            action="UPDATE",
+            entity_id=employee.id,
+            details=(
+                f"Employee '{employee.name}' "
+                f"was updated"
+            ),
+        )
+
+        # ----------------------------------------------------
+        # Employee + audit log are committed atomically.
+        # ----------------------------------------------------
 
         db.commit()
 
     except IntegrityError:
-
         db.rollback()
 
         raise HTTPException(
             status_code=409,
-            detail="Employee could not be updated because of a database constraint"
+            detail=(
+                "Employee could not be updated "
+                "because of a database constraint"
+            ),
+        )
+
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Employee could not be updated",
         )
 
     db.refresh(employee)
 
     return {
         "message": "Employee updated successfully",
-        "employee": employee_response(employee)
+        "employee": employee_response(employee),
     }
 
 
@@ -734,8 +826,11 @@ def update_employee(
 def delete_employee(
     employee_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin)
+    current_user=Depends(require_admin),
 ):
+    # ========================================================
+    # FIND EMPLOYEE
+    # ========================================================
 
     employee = (
         db.query(Employee)
@@ -746,14 +841,14 @@ def delete_employee(
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=404,
-            detail="Employee not found"
+            detail="Employee not found",
         )
 
-    # Prevent deleting a manager who still
-    # has subordinate employees.
+    # ========================================================
+    # PREVENT DELETING A MANAGER WITH SUBORDINATES
+    # ========================================================
 
     has_subordinates = (
         db.query(Employee)
@@ -764,37 +859,46 @@ def delete_employee(
     )
 
     if has_subordinates:
-
         raise HTTPException(
             status_code=400,
             detail=(
                 "Cannot delete this employee because "
                 "they are assigned as a manager. "
                 "Reassign their employees first."
-            )
+            ),
         )
 
     employee_name = employee.name
 
-    create_audit_log(
-        db=db,
-        current_user=current_user,
-        action="DELETE",
-        entity_id=employee.id,
-        details=(
-            f"Employee '{employee_name}' "
-            f"was deleted"
-        )
-    )
-
-    db.delete(employee)
-
     try:
+        # ----------------------------------------------------
+        # Audit log must be in the same transaction as delete.
+        # ----------------------------------------------------
+
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            action="DELETE",
+            entity_id=employee.id,
+            details=(
+                f"Employee '{employee_name}' "
+                f"was deleted"
+            ),
+        )
+
+        # ----------------------------------------------------
+        # Delete employee.
+        # ----------------------------------------------------
+
+        db.delete(employee)
+
+        # ----------------------------------------------------
+        # Employee deletion + audit log committed atomically.
+        # ----------------------------------------------------
 
         db.commit()
 
     except IntegrityError:
-
         db.rollback()
 
         raise HTTPException(
@@ -802,10 +906,18 @@ def delete_employee(
             detail=(
                 "Employee could not be deleted because "
                 "the employee is referenced by another record"
-            )
+            ),
+        )
+
+    except SQLAlchemyError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Employee could not be deleted",
         )
 
     return {
         "message": "Employee deleted successfully",
-        "employee_id": employee_id
+        "employee_id": employee_id,
     }

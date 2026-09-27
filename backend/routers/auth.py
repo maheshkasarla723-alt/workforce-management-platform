@@ -417,6 +417,14 @@ def get_me(
             if not isinstance(payslips, list):
                 payslips = []
 
+            latest_payslip = payslips[-1] if payslips else None
+            if not isinstance(latest_payslip, dict):
+                latest_payslip = None
+
+            salary_deduction = None
+            if latest_payslip is not None:
+                salary_deduction = latest_payslip.get("deductions")
+
             employee_profile = {
                 "job_role": profile_metadata.get("job_role"),
                 "department": (
@@ -425,6 +433,8 @@ def get_me(
                     else None
                 ),
                 "salary": employee.salary,
+                "salary_deduction": salary_deduction,
+                "latest_payslip": latest_payslip,
                 "payslips": payslips,
             }
 

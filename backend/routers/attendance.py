@@ -1,7 +1,8 @@
 from datetime import date, time
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -24,7 +25,7 @@ from backend.routers.auth import get_current_user
 
 router = APIRouter(
     prefix="/api/attendance",
-    tags=["Attendance"]
+    tags=["Attendance"],
 )
 
 
@@ -45,16 +46,20 @@ VALID_ATTENDANCE_STATUSES = [
 # ==================================================
 
 class AttendanceCreate(BaseModel):
-
     employee_id: int = Field(
         ...,
         gt=0,
-        description="Employee ID must be greater than 0"
+        description="Employee ID must be greater than 0",
     )
 
     attendance_date: date
 
-    status: str
+    status: str = Field(
+        ...,
+        min_length=1,
+        max_length=30,
+        description="Attendance status",
+    )
 
     check_in: time | None = None
 
@@ -70,8 +75,15 @@ def create_audit_log(
     current_user,
     action: str,
     entity_id: int,
-    details: str
-):
+    details: str,
+) -> None:
+    """
+    Add an audit record to the current transaction.
+
+    The audit record is intentionally not committed here.
+    The calling operation commits both the business change
+    and audit record together.
+    """
 
     audit_log = AuditLog(
         user_id=current_user.id,
@@ -79,10 +91,33 @@ def create_audit_log(
         action=action,
         entity="Attendance",
         entity_id=entity_id,
-        details=details
+        details=details,
     )
 
     db.add(audit_log)
+
+
+# ==================================================
+# SERIALIZATION HELPERS
+# ==================================================
+
+def attendance_to_dict(
+    record: Attendance,
+    employee_name: str,
+) -> dict:
+    """
+    Convert an Attendance ORM object into a safe API response.
+    """
+
+    return {
+        "id": record.id,
+        "employee_id": record.employee_id,
+        "employee_name": employee_name,
+        "attendance_date": record.attendance_date,
+        "status": record.status,
+        "check_in": record.check_in,
+        "check_out": record.check_out,
+    }
 
 
 # ==================================================
@@ -90,27 +125,21 @@ def create_audit_log(
 # ==================================================
 
 def validate_attendance_data(
-    attendance_data: AttendanceCreate
-):
+    attendance_data: AttendanceCreate,
+) -> None:
 
     # ------------------------------------------------
     # Validate status
     # ------------------------------------------------
 
-    if (
-        attendance_data.status
-        not in VALID_ATTENDANCE_STATUSES
-    ):
-
+    if attendance_data.status not in VALID_ATTENDANCE_STATUSES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Invalid attendance status. "
                 "Allowed values: "
-                + ", ".join(
-                    VALID_ATTENDANCE_STATUSES
-                )
-            )
+                + ", ".join(VALID_ATTENDANCE_STATUSES)
+            ),
         )
 
     # ------------------------------------------------
@@ -119,38 +148,31 @@ def validate_attendance_data(
 
     if (
         attendance_data.check_out is not None
-        and
-        attendance_data.check_in is None
+        and attendance_data.check_in is None
     ):
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Check-in is required when "
                 "check-out is provided"
-            )
+            ),
         )
 
     # ------------------------------------------------
-    # Check-out must be later
-    # than check-in
+    # Check-out must be later than check-in
     # ------------------------------------------------
 
     if (
         attendance_data.check_in is not None
-        and
-        attendance_data.check_out is not None
-        and
-        attendance_data.check_out
-        <= attendance_data.check_in
+        and attendance_data.check_out is not None
+        and attendance_data.check_out <= attendance_data.check_in
     ):
-
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=(
                 "Check-out time must be later "
                 "than check-in time"
-            )
+            ),
         )
 
 
@@ -161,63 +183,39 @@ def validate_attendance_data(
 
 @router.get("/")
 def get_attendance(
-
     db: Session = Depends(get_db),
-
-    current_user=Depends(
-        require_admin_or_hr
-    )
+    current_user=Depends(require_admin_or_hr),
 ):
+    """
+    Return all attendance records.
 
-    # JOIN Attendance + Employee
-    # Avoids N+1 employee queries.
+    Attendance and Employee are loaded with one JOIN
+    to avoid N+1 employee queries.
+    """
 
     records = (
         db.query(
             Attendance,
-            Employee
+            Employee,
         )
         .join(
             Employee,
-            Employee.id ==
-            Attendance.employee_id
+            Employee.id == Attendance.employee_id,
         )
         .order_by(
             Attendance.attendance_date.desc(),
-            Attendance.id.desc()
+            Attendance.id.desc(),
         )
         .all()
     )
 
-    result = []
-
-    for record, employee in records:
-
-        result.append({
-
-            "id":
-                record.id,
-
-            "employee_id":
-                record.employee_id,
-
-            "employee_name":
-                employee.name,
-
-            "attendance_date":
-                record.attendance_date,
-
-            "status":
-                record.status,
-
-            "check_in":
-                record.check_in,
-
-            "check_out":
-                record.check_out
-        })
-
-    return result
+    return [
+        attendance_to_dict(
+            record=record,
+            employee_name=employee.name,
+        )
+        for record, employee in records
+    ]
 
 
 # ==================================================
@@ -227,19 +225,11 @@ def get_attendance(
 
 @router.post("/")
 def create_attendance(
-
     attendance: AttendanceCreate,
-
     db: Session = Depends(get_db),
-
-    current_user=Depends(
-        require_admin_or_hr
-    )
+    current_user=Depends(require_admin_or_hr),
 ):
-
-    validate_attendance_data(
-        attendance
-    )
+    validate_attendance_data(attendance)
 
     # ------------------------------------------------
     # Check employee
@@ -248,17 +238,15 @@ def create_attendance(
     employee = (
         db.query(Employee)
         .filter(
-            Employee.id ==
-            attendance.employee_id
+            Employee.id == attendance.employee_id,
         )
         .first()
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
+            detail="Employee not found",
         )
 
     # ------------------------------------------------
@@ -268,23 +256,19 @@ def create_attendance(
     existing_record = (
         db.query(Attendance)
         .filter(
-            Attendance.employee_id ==
-            attendance.employee_id,
-
-            Attendance.attendance_date ==
-            attendance.attendance_date
+            Attendance.employee_id == attendance.employee_id,
+            Attendance.attendance_date == attendance.attendance_date,
         )
         .first()
     )
 
     if existing_record:
-
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 "Attendance already exists for "
                 "this employee on this date"
-            )
+            ),
         )
 
     # ------------------------------------------------
@@ -292,82 +276,61 @@ def create_attendance(
     # ------------------------------------------------
 
     new_record = Attendance(
-
-        employee_id=
-            attendance.employee_id,
-
-        attendance_date=
-            attendance.attendance_date,
-
-        status=
-            attendance.status,
-
-        check_in=
-            attendance.check_in,
-
-        check_out=
-            attendance.check_out
+        employee_id=attendance.employee_id,
+        attendance_date=attendance.attendance_date,
+        status=attendance.status,
+        check_in=attendance.check_in,
+        check_out=attendance.check_out,
     )
 
-    db.add(new_record)
+    try:
+        db.add(new_record)
 
-    # Generate ID before audit log
+        # Generate ID before creating the audit record.
+        db.flush()
 
-    db.flush()
-
-    # ------------------------------------------------
-    # Audit
-    # ------------------------------------------------
-
-    create_audit_log(
-
-        db=db,
-
-        current_user=current_user,
-
-        action="CREATE",
-
-        entity_id=new_record.id,
-
-        details=(
-            f"Attendance created for employee "
-            f"'{employee.name}' on "
-            f"{attendance.attendance_date}"
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            action="CREATE",
+            entity_id=new_record.id,
+            details=(
+                f"Attendance created for employee "
+                f"'{employee.name}' on "
+                f"{attendance.attendance_date}"
+            ),
         )
-    )
 
-    db.commit()
+        # Business record + audit record commit together.
+        db.commit()
 
-    db.refresh(new_record)
+        db.refresh(new_record)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Attendance could not be created because "
+                "a conflicting attendance record already exists"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Attendance could not be created",
+        )
 
     return {
-
-        "message":
-            "Attendance created successfully",
-
-        "attendance": {
-
-            "id":
-                new_record.id,
-
-            "employee_id":
-                new_record.employee_id,
-
-            "employee_name":
-                employee.name,
-
-            "attendance_date":
-                new_record.attendance_date,
-
-            "status":
-                new_record.status,
-
-            "check_in":
-                new_record.check_in,
-
-            "check_out":
-                new_record.check_out
-        }
+        "message": "Attendance created successfully",
+        "attendance": attendance_to_dict(
+            record=new_record,
+            employee_name=employee.name,
+        ),
     }
 
 
@@ -377,26 +340,24 @@ def create_attendance(
 
 def get_employee_for_user(
     db: Session,
-    current_user: User
-):
+    current_user: User,
+) -> Employee:
 
     employee = (
         db.query(Employee)
         .filter(
-            Employee.email ==
-            current_user.email
+            Employee.email == current_user.email,
         )
         .first()
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=(
                 "Employee profile not found "
                 "for this user account."
-            )
+            ),
         )
 
     return employee
@@ -412,60 +373,33 @@ def get_employee_for_user(
 
 @router.get("/my")
 def get_my_attendance(
-
     db: Session = Depends(get_db),
-
-    current_user: User =
-        Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-
     employee = get_employee_for_user(
         db,
-        current_user
+        current_user,
     )
 
     records = (
         db.query(Attendance)
         .filter(
-            Attendance.employee_id ==
-            employee.id
+            Attendance.employee_id == employee.id,
         )
         .order_by(
             Attendance.attendance_date.desc(),
-            Attendance.id.desc()
+            Attendance.id.desc(),
         )
         .all()
     )
 
-    result = []
-
-    for record in records:
-
-        result.append({
-
-            "id":
-                record.id,
-
-            "employee_id":
-                record.employee_id,
-
-            "employee_name":
-                employee.name,
-
-            "attendance_date":
-                record.attendance_date,
-
-            "status":
-                record.status,
-
-            "check_in":
-                record.check_in,
-
-            "check_out":
-                record.check_out
-        })
-
-    return result
+    return [
+        attendance_to_dict(
+            record=record,
+            employee_name=employee.name,
+        )
+        for record in records
+    ]
 
 
 # ==================================================
@@ -474,55 +408,46 @@ def get_my_attendance(
 
 @router.get("/my/summary")
 def get_my_attendance_summary(
-
     year: int = Query(
         ...,
         ge=2000,
-        le=2100
+        le=2100,
     ),
-
     month: int = Query(
         ...,
         ge=1,
-        le=12
+        le=12,
     ),
-
     db: Session = Depends(get_db),
-
-    current_user: User =
-        Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-
     employee = get_employee_for_user(
         db,
-        current_user
+        current_user,
     )
 
     # ------------------------------------------------
     # Calculate month boundaries
     # ------------------------------------------------
 
-    if month == 12:
-
-        next_month = date(
-            year + 1,
-            1,
-            1
-        )
-
-    else:
-
-        next_month = date(
-            year,
-            month + 1,
-            1
-        )
-
     current_month = date(
         year,
         month,
-        1
+        1,
     )
+
+    if month == 12:
+        next_month = date(
+            year + 1,
+            1,
+            1,
+        )
+    else:
+        next_month = date(
+            year,
+            month + 1,
+            1,
+        )
 
     # ------------------------------------------------
     # Get monthly records
@@ -531,18 +456,12 @@ def get_my_attendance_summary(
     records = (
         db.query(Attendance)
         .filter(
-
-            Attendance.employee_id ==
-            employee.id,
-
-            Attendance.attendance_date >=
-            current_month,
-
-            Attendance.attendance_date <
-            next_month
+            Attendance.employee_id == employee.id,
+            Attendance.attendance_date >= current_month,
+            Attendance.attendance_date < next_month,
         )
         .order_by(
-            Attendance.attendance_date.asc()
+            Attendance.attendance_date.asc(),
         )
         .all()
     )
@@ -559,49 +478,27 @@ def get_my_attendance_summary(
     for record in records:
 
         if record.status == "Present":
-
             present_count += 1
 
         elif record.status == "Absent":
-
             absent_count += 1
 
         elif record.status == "Leave":
-
             leave_count += 1
 
         elif record.status == "Half Day":
-
             half_day_count += 1
 
     return {
-
-        "employee_id":
-            employee.id,
-
-        "employee_name":
-            employee.name,
-
-        "year":
-            year,
-
-        "month":
-            month,
-
-        "total_records":
-            len(records),
-
-        "present":
-            present_count,
-
-        "absent":
-            absent_count,
-
-        "leave":
-            leave_count,
-
-        "half_day":
-            half_day_count
+        "employee_id": employee.id,
+        "employee_name": employee.name,
+        "year": year,
+        "month": month,
+        "total_records": len(records),
+        "present": present_count,
+        "absent": absent_count,
+        "leave": leave_count,
+        "half_day": half_day_count,
     }
 
 
@@ -615,63 +512,34 @@ def get_my_attendance_summary(
 
 @router.get("/my/{attendance_id}")
 def get_my_one_attendance(
-
     attendance_id: int,
-
     db: Session = Depends(get_db),
-
-    current_user: User =
-        Depends(get_current_user)
+    current_user: User = Depends(get_current_user),
 ):
-
     employee = get_employee_for_user(
         db,
-        current_user
+        current_user,
     )
 
     record = (
         db.query(Attendance)
         .filter(
-
-            Attendance.id ==
-            attendance_id,
-
-            Attendance.employee_id ==
-            employee.id
+            Attendance.id == attendance_id,
+            Attendance.employee_id == employee.id,
         )
         .first()
     )
 
     if not record:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Attendance record not found"
+            detail="Attendance record not found",
         )
 
-    return {
-
-        "id":
-            record.id,
-
-        "employee_id":
-            record.employee_id,
-
-        "employee_name":
-            employee.name,
-
-        "attendance_date":
-            record.attendance_date,
-
-        "status":
-            record.status,
-
-        "check_in":
-            record.check_in,
-
-        "check_out":
-            record.check_out
-    }
+    return attendance_to_dict(
+        record=record,
+        employee_name=employee.name,
+    )
 
 
 # ==================================================
@@ -682,65 +550,37 @@ def get_my_one_attendance(
 
 @router.get("/{attendance_id}")
 def get_one_attendance(
-
     attendance_id: int,
-
     db: Session = Depends(get_db),
-
-    current_user=Depends(
-        require_admin_or_hr
-    )
+    current_user=Depends(require_admin_or_hr),
 ):
-
     result = (
         db.query(
             Attendance,
-            Employee
+            Employee,
         )
         .join(
             Employee,
-            Employee.id ==
-            Attendance.employee_id
+            Employee.id == Attendance.employee_id,
         )
         .filter(
-            Attendance.id ==
-            attendance_id
+            Attendance.id == attendance_id,
         )
         .first()
     )
 
     if not result:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Attendance record not found"
+            detail="Attendance record not found",
         )
 
     record, employee = result
 
-    return {
-
-        "id":
-            record.id,
-
-        "employee_id":
-            record.employee_id,
-
-        "employee_name":
-            employee.name,
-
-        "attendance_date":
-            record.attendance_date,
-
-        "status":
-            record.status,
-
-        "check_in":
-            record.check_in,
-
-        "check_out":
-            record.check_out
-    }
+    return attendance_to_dict(
+        record=record,
+        employee_name=employee.name,
+    )
 
 
 # ==================================================
@@ -750,148 +590,129 @@ def get_one_attendance(
 
 @router.put("/{attendance_id}")
 def update_attendance(
-
     attendance_id: int,
-
     attendance_data: AttendanceCreate,
-
     db: Session = Depends(get_db),
-
-    current_user=Depends(
-        require_admin_or_hr
-    )
+    current_user=Depends(require_admin_or_hr),
 ):
+    validate_attendance_data(attendance_data)
 
-    validate_attendance_data(
-        attendance_data
-    )
+    # ------------------------------------------------
+    # Find existing record
+    # ------------------------------------------------
 
     record = (
         db.query(Attendance)
         .filter(
-            Attendance.id ==
-            attendance_id
+            Attendance.id == attendance_id,
         )
         .first()
     )
 
     if not record:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Attendance record not found"
+            detail="Attendance record not found",
         )
+
+    # ------------------------------------------------
+    # Check employee
+    # ------------------------------------------------
 
     employee = (
         db.query(Employee)
         .filter(
-            Employee.id ==
-            attendance_data.employee_id
+            Employee.id == attendance_data.employee_id,
         )
         .first()
     )
 
     if not employee:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Employee not found"
+            detail="Employee not found",
         )
+
+    # ------------------------------------------------
+    # Prevent duplicate attendance
+    # ------------------------------------------------
 
     duplicate_record = (
         db.query(Attendance)
         .filter(
-
-            Attendance.employee_id ==
-            attendance_data.employee_id,
-
-            Attendance.attendance_date ==
-            attendance_data.attendance_date,
-
-            Attendance.id !=
-            attendance_id
+            Attendance.employee_id == attendance_data.employee_id,
+            Attendance.attendance_date == attendance_data.attendance_date,
+            Attendance.id != attendance_id,
         )
         .first()
     )
 
     if duplicate_record:
-
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail=(
                 "Another attendance record already "
                 "exists for this employee on this date"
-            )
+            ),
         )
 
-    record.employee_id = (
-        attendance_data.employee_id
-    )
+    # ------------------------------------------------
+    # Update record
+    # ------------------------------------------------
 
-    record.attendance_date = (
-        attendance_data.attendance_date
-    )
+    record.employee_id = attendance_data.employee_id
+    record.attendance_date = attendance_data.attendance_date
+    record.status = attendance_data.status
+    record.check_in = attendance_data.check_in
+    record.check_out = attendance_data.check_out
 
-    record.status = (
-        attendance_data.status
-    )
+    try:
 
-    record.check_in = (
-        attendance_data.check_in
-    )
-
-    record.check_out = (
-        attendance_data.check_out
-    )
-
-    create_audit_log(
-
-        db=db,
-
-        current_user=current_user,
-
-        action="UPDATE",
-
-        entity_id=record.id,
-
-        details=(
-            f"Attendance for employee "
-            f"'{employee.name}' was updated"
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            action="UPDATE",
+            entity_id=record.id,
+            details=(
+                f"Attendance for employee "
+                f"'{employee.name}' was updated"
+            ),
         )
-    )
 
-    db.commit()
+        # Flush makes database constraint failures occur
+        # inside this controlled transaction block.
+        db.flush()
 
-    db.refresh(record)
+        # Business record + audit record commit together.
+        db.commit()
+
+        db.refresh(record)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Attendance could not be updated because "
+                "a conflicting attendance record already exists"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Attendance could not be updated",
+        )
 
     return {
-
-        "message":
-            "Attendance updated successfully",
-
-        "attendance": {
-
-            "id":
-                record.id,
-
-            "employee_id":
-                record.employee_id,
-
-            "employee_name":
-                employee.name,
-
-            "attendance_date":
-                record.attendance_date,
-
-            "status":
-                record.status,
-
-            "check_in":
-                record.check_in,
-
-            "check_out":
-                record.check_out
-        }
+        "message": "Attendance updated successfully",
+        "attendance": attendance_to_dict(
+            record=record,
+            employee_name=employee.name,
+        ),
     }
 
 
@@ -902,77 +723,94 @@ def update_attendance(
 
 @router.delete("/{attendance_id}")
 def delete_attendance(
-
     attendance_id: int,
-
     db: Session = Depends(get_db),
-
-    current_user=Depends(
-        require_admin
-    )
+    current_user=Depends(require_admin),
 ):
+    # ------------------------------------------------
+    # Find record
+    # ------------------------------------------------
 
     record = (
         db.query(Attendance)
         .filter(
-            Attendance.id ==
-            attendance_id
+            Attendance.id == attendance_id,
         )
         .first()
     )
 
     if not record:
-
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Attendance record not found"
+            detail="Attendance record not found",
         )
+
+    # ------------------------------------------------
+    # Find employee for audit information
+    # ------------------------------------------------
 
     employee = (
         db.query(Employee)
         .filter(
-            Employee.id ==
-            record.employee_id
+            Employee.id == record.employee_id,
         )
         .first()
     )
 
     employee_name = (
-
         employee.name
-
         if employee
-
         else "Unknown Employee"
     )
 
-    create_audit_log(
+    # ------------------------------------------------
+    # Transaction-safe delete + audit
+    # ------------------------------------------------
 
-        db=db,
+    try:
 
-        current_user=current_user,
-
-        action="DELETE",
-
-        entity_id=record.id,
-
-        details=(
-            f"Attendance record for employee "
-            f"'{employee_name}' on "
-            f"{record.attendance_date} "
-            f"was deleted"
+        create_audit_log(
+            db=db,
+            current_user=current_user,
+            action="DELETE",
+            entity_id=record.id,
+            details=(
+                f"Attendance record for employee "
+                f"'{employee_name}' on "
+                f"{record.attendance_date} "
+                f"was deleted"
+            ),
         )
-    )
 
-    db.delete(record)
+        db.delete(record)
 
-    db.commit()
+        # Force the DELETE SQL to execute before commit,
+        # allowing IntegrityError to be handled here.
+        db.flush()
+
+        # Delete + audit commit together.
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                "Attendance could not be deleted because "
+                "it is referenced by another record"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Attendance could not be deleted",
+        )
 
     return {
-
-        "message":
-            "Attendance deleted successfully",
-
-        "attendance_id":
-            attendance_id
+        "message": "Attendance deleted successfully",
+        "attendance_id": attendance_id,
     }

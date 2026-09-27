@@ -2,6 +2,7 @@ import logging
 import os
 import time
 import uuid
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,7 +22,7 @@ from backend.logging_config import (
     request_id_context,
 )
 
-from backend.database import Base, engine
+from backend.database import engine
 
 from backend.models import Employee
 from backend.department_models import Department
@@ -75,9 +76,30 @@ TESTING = os.getenv(
 # DATABASE
 # ============================================================
 
-Base.metadata.create_all(
-    bind=engine
-)
+# Database schema changes are managed by Alembic migrations.
+# Do not call Base.metadata.create_all() during application startup.
+# Apply schema changes explicitly with:
+#     python -m alembic upgrade head
+
+
+
+# ============================================================
+# FASTAPI LIFESPAN
+# ============================================================
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info(
+        "Workforce Management Platform "
+        "started successfully"
+    )
+
+    yield
+
+    logger.info(
+        "Workforce Management Platform "
+        "shutting down"
+    )
 
 
 # ============================================================
@@ -85,6 +107,7 @@ Base.metadata.create_all(
 # ============================================================
 
 app = FastAPI(
+    lifespan=lifespan,
     title="Workforce Management Platform",
     version="1.0.0",
     debug=DEBUG,
@@ -156,8 +179,11 @@ async def http_exception_handler(
     exc: StarletteHTTPException,
 ):
     """
-    Return safe HTTP errors without exposing
-    internal implementation details.
+    Return safe HTTP errors.
+
+    API routes keep JSON error responses.
+    Browser/frontend 404 routes receive the
+    dedicated frontend/404.html page.
     """
 
     request_id = request.headers.get(
@@ -169,7 +195,57 @@ async def http_exception_handler(
             uuid.uuid4()
         )
 
-    # Keep expected client errors safe.
+    # API errors must remain JSON for API clients.
+    if request.url.path.startswith("/api/"):
+        if isinstance(exc.detail, str):
+            detail = exc.detail
+        else:
+            detail = "Request could not be completed."
+
+        response = JSONResponse(
+            status_code=exc.status_code,
+            content={
+                "detail": detail,
+                "request_id": request_id,
+            },
+        )
+
+        response.headers[
+            "X-Request-ID"
+        ] = request_id
+
+        if exc.headers:
+            for key, value in exc.headers.items():
+                response.headers[key] = value
+
+        return response
+
+    # Browser/frontend 404 routes receive the
+    # dedicated 404 page.
+    if exc.status_code == 404:
+        frontend_404 = os.path.abspath(
+            os.path.join(
+                os.path.dirname(__file__),
+                "..",
+                "frontend",
+                "404.html",
+            )
+        )
+
+        if os.path.isfile(frontend_404):
+            response = FileResponse(
+                frontend_404,
+                status_code=404,
+                media_type="text/html",
+            )
+
+            response.headers[
+                "X-Request-ID"
+            ] = request_id
+
+            return response
+
+    # Keep other non-API HTTP errors as safe JSON.
     if isinstance(exc.detail, str):
         detail = exc.detail
     else:
@@ -662,16 +738,3 @@ def health_check():
     return {
         "status": "healthy"
     }
-
-
-# ============================================================
-# STARTUP EVENT
-# ============================================================
-
-@app.on_event("startup")
-async def startup_event():
-
-    logger.info(
-        "Workforce Management Platform "
-        "started successfully"
-    )

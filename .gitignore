@@ -39,3 +39,5 @@ dist/
 *.dump
 *.tar.gz
 backups/*
+
+auth_current.txt

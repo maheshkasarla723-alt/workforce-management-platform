@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -9,9 +10,13 @@ from backend.services.permissions import require_admin_or_hr
 from backend.routers.auth import get_current_user
 
 
+# ============================================================
+# ROUTER
+# ============================================================
+
 router = APIRouter(
     prefix="/api/notifications",
-    tags=["Notifications"]
+    tags=["Notifications"],
 )
 
 
@@ -27,6 +32,22 @@ class NotificationCreate(BaseModel):
 
 
 # ============================================================
+# RESPONSE HELPER
+# ============================================================
+
+def serialize_notification(notification: Notification):
+    return {
+        "id": notification.id,
+        "user_id": notification.user_id,
+        "title": notification.title,
+        "message": notification.message,
+        "type": notification.type,
+        "is_read": notification.is_read,
+        "created_at": notification.created_at,
+    }
+
+
+# ============================================================
 # CREATE NOTIFICATION
 # Admin / HR Manager only
 # ============================================================
@@ -35,44 +56,80 @@ class NotificationCreate(BaseModel):
 def create_notification(
     notification_data: NotificationCreate,
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
+    # Basic validation
+    title = notification_data.title.strip()
+    message = notification_data.message.strip()
+    notification_type = notification_data.type.strip()
 
+    if not title:
+        raise HTTPException(
+            status_code=400,
+            detail="Notification title cannot be empty",
+        )
+
+    if not message:
+        raise HTTPException(
+            status_code=400,
+            detail="Notification message cannot be empty",
+        )
+
+    if not notification_type:
+        notification_type = "General"
+
+    # Verify target user exists
     user = (
         db.query(User)
-        .filter(User.id == notification_data.user_id)
+        .filter(
+            User.id == notification_data.user_id
+        )
         .first()
     )
 
     if not user:
         raise HTTPException(
             status_code=404,
-            detail="User not found"
+            detail="User not found",
         )
 
     notification = Notification(
         user_id=notification_data.user_id,
-        title=notification_data.title,
-        message=notification_data.message,
-        type=notification_data.type,
-        is_read=False
+        title=title,
+        message=message,
+        type=notification_type,
+        is_read=False,
     )
 
-    db.add(notification)
-    db.commit()
-    db.refresh(notification)
+    try:
+        db.add(notification)
+        db.commit()
+        db.refresh(notification)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Notification could not be created "
+                "because of a data conflict"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Notification could not be created",
+        )
 
     return {
         "message": "Notification created successfully",
-        "notification": {
-            "id": notification.id,
-            "user_id": notification.user_id,
-            "title": notification.title,
-            "message": notification.message,
-            "type": notification.type,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at
-        }
+        "notification": serialize_notification(
+            notification
+        ),
     }
 
 
@@ -83,30 +140,21 @@ def create_notification(
 @router.get("/")
 def get_my_notifications(
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-
     notifications = (
         db.query(Notification)
-        .filter(Notification.user_id == current_user.id)
+        .filter(
+            Notification.user_id == current_user.id
+        )
         .order_by(Notification.id.desc())
         .all()
     )
 
-    result = []
-
-    for notification in notifications:
-        result.append({
-            "id": notification.id,
-            "user_id": notification.user_id,
-            "title": notification.title,
-            "message": notification.message,
-            "type": notification.type,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at
-        })
-
-    return result
+    return [
+        serialize_notification(notification)
+        for notification in notifications
+    ]
 
 
 # ============================================================
@@ -117,43 +165,63 @@ def get_my_notifications(
 def mark_notification_as_read(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-
     notification = (
         db.query(Notification)
-        .filter(Notification.id == notification_id)
+        .filter(
+            Notification.id == notification_id
+        )
         .first()
     )
 
     if not notification:
         raise HTTPException(
             status_code=404,
-            detail="Notification not found"
+            detail="Notification not found",
         )
 
+    # Horizontal privilege protection:
+    # users can only modify their own notifications.
     if notification.user_id != current_user.id:
         raise HTTPException(
             status_code=403,
-            detail="You can only update your own notifications"
+            detail=(
+                "You can only update "
+                "your own notifications"
+            ),
         )
 
     notification.is_read = True
 
-    db.commit()
-    db.refresh(notification)
+    try:
+        db.commit()
+        db.refresh(notification)
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Notification could not be marked "
+                "as read because of a data conflict"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Notification could not be marked as read",
+        )
 
     return {
         "message": "Notification marked as read",
-        "notification": {
-            "id": notification.id,
-            "user_id": notification.user_id,
-            "title": notification.title,
-            "message": notification.message,
-            "type": notification.type,
-            "is_read": notification.is_read,
-            "created_at": notification.created_at
-        }
+        "notification": serialize_notification(
+            notification
+        ),
     }
 
 
@@ -165,31 +233,57 @@ def mark_notification_as_read(
 def delete_notification(
     notification_id: int,
     db: Session = Depends(get_db),
-    current_user=Depends(get_current_user)
+    current_user=Depends(get_current_user),
 ):
-
     notification = (
         db.query(Notification)
-        .filter(Notification.id == notification_id)
+        .filter(
+            Notification.id == notification_id
+        )
         .first()
     )
 
     if not notification:
         raise HTTPException(
             status_code=404,
-            detail="Notification not found"
+            detail="Notification not found",
         )
 
+    # Horizontal privilege protection:
+    # users can only delete their own notifications.
     if notification.user_id != current_user.id:
         raise HTTPException(
             status_code=403,
-            detail="You can only delete your own notifications"
+            detail=(
+                "You can only delete "
+                "your own notifications"
+            ),
         )
 
-    db.delete(notification)
-    db.commit()
+    try:
+        db.delete(notification)
+        db.commit()
+
+    except IntegrityError:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                "Notification could not be deleted "
+                "because it is referenced by another record"
+            ),
+        )
+
+    except Exception:
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Notification could not be deleted",
+        )
 
     return {
         "message": "Notification deleted successfully",
-        "notification_id": notification_id
+        "notification_id": notification_id,
     }

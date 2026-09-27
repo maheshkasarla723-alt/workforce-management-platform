@@ -1,19 +1,20 @@
 # Workforce Management Platform
 
-A full-stack Workforce Management Platform built with Python, FastAPI, SQLAlchemy, PostgreSQL, HTML, CSS, and JavaScript.
+A production-oriented full-stack Workforce Management Platform built with Python, FastAPI, SQLAlchemy, PostgreSQL, HTML, CSS, and JavaScript.
 
-The platform provides employee management, departments, attendance, tasks, notifications, audit logging, authentication, role-based access control, dashboard reporting, security controls, automated testing, performance indexes, backup/recovery support, CI, and production deployment configuration.
+The platform provides employee management, departments, attendance, tasks, notifications, audit logging, authentication, role-based access control, dashboard reporting, security controls, automated testing, database migrations, performance indexes, backup/recovery support, CI, and production deployment configuration.
 
 ---
 
-## 1. Project Overview
+# 1. Project Overview
 
 The Workforce Management Platform is designed to help organizations manage workforce information and employee-related activities through a centralized web application.
 
-### Main Features
+## Main Features
 
 - User authentication and JWT-based authorization
 - Role-Based Access Control (RBAC)
+- Admin, HR, Manager, and Employee roles
 - Employee management
 - Department management
 - Attendance management
@@ -32,8 +33,10 @@ The Workforce Management Platform is designed to help organizations manage workf
 - Structured application logging
 - PostgreSQL database
 - SQLAlchemy ORM
+- Alembic database migrations
 - Database performance indexes
 - Automated tests with pytest
+- Dependency vulnerability auditing with pip-audit
 - GitHub Actions CI
 - PostgreSQL backup and restore workflow
 - Docker configuration
@@ -51,10 +54,11 @@ The Workforce Management Platform is designed to help organizations manage workf
 - SQLAlchemy
 - Pydantic
 - PostgreSQL
+- Alembic
 - JWT
 - Passlib
-- Pytest
 - SlowAPI
+- Pytest
 
 ## Frontend
 
@@ -62,6 +66,20 @@ The Workforce Management Platform is designed to help organizations manage workf
 - CSS3
 - JavaScript
 - Responsive UI
+
+## Security
+
+- JWT-based authentication
+- Password hashing
+- Role-Based Access Control
+- Authentication rate limiting
+- CORS restrictions
+- Security headers
+- Content Security Policy
+- Trusted Host validation
+- Request ID tracking
+- Safe error responses
+- Dependency vulnerability scanning
 
 ## Development Tools
 
@@ -118,6 +136,10 @@ workforce management project/
 ├── frontend/
 │   └── index.html
 │
+├── migrations/
+│   ├── versions/
+│   └── env.py
+│
 ├── tests/
 │   ├── conftest.py
 │   ├── test_api.py
@@ -130,6 +152,7 @@ workforce management project/
 │
 ├── Dockerfile
 ├── docker-compose.yml
+├── alembic.ini
 ├── requirements.txt
 ├── .env
 ├── .gitignore

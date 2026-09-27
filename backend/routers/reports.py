@@ -1,6 +1,8 @@
 from datetime import date
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy import case, func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from backend.database import get_db
@@ -18,7 +20,7 @@ from backend.services.permissions import require_admin_or_hr
 
 router = APIRouter(
     prefix="/api/reports",
-    tags=["Reports"]
+    tags=["Reports"],
 )
 
 
@@ -30,134 +32,206 @@ router = APIRouter(
 @router.get("/summary")
 def get_summary(
     db: Session = Depends(get_db),
-    current_user=Depends(require_admin_or_hr)
+    current_user=Depends(require_admin_or_hr),
 ):
+    """
+    Return the workforce summary for Admin and HR users.
 
-    # --------------------------------------------------
-    # EMPLOYEE COUNT
-    # --------------------------------------------------
-
-    total_employees = (
-        db.query(Employee).count()
-    )
-
-
-    # --------------------------------------------------
-    # DEPARTMENT COUNT
-    # --------------------------------------------------
-
-    total_departments = (
-        db.query(Department).count()
-    )
-
-
-    # --------------------------------------------------
-    # TODAY'S DATE
-    # --------------------------------------------------
+    Includes:
+    - Total employees
+    - Total departments
+    - Today's attendance
+    - Today's present/absent counts
+    - Total tasks
+    - Pending/completed/in-progress task counts
+    """
 
     today = date.today()
 
+    try:
+        # --------------------------------------------------
+        # EMPLOYEE COUNT
+        # --------------------------------------------------
 
-    # --------------------------------------------------
-    # ATTENDANCE
-    # --------------------------------------------------
-
-    today_attendance = (
-        db.query(Attendance)
-        .filter(
-            Attendance.attendance_date == today
+        total_employees = (
+            db.query(func.count(Employee.id))
+            .scalar()
+            or 0
         )
-        .count()
-    )
 
+        # --------------------------------------------------
+        # DEPARTMENT COUNT
+        # --------------------------------------------------
 
-    present_today = (
-        db.query(Attendance)
-        .filter(
-            Attendance.attendance_date == today,
-            Attendance.status == "Present"
+        total_departments = (
+            db.query(func.count(Department.id))
+            .scalar()
+            or 0
         )
-        .count()
-    )
 
+        # --------------------------------------------------
+        # TODAY'S ATTENDANCE
+        #
+        # One database query instead of three separate
+        # attendance COUNT queries.
+        # --------------------------------------------------
 
-    absent_today = (
-        db.query(Attendance)
-        .filter(
-            Attendance.attendance_date == today,
-            Attendance.status == "Absent"
+        attendance_summary = (
+            db.query(
+                func.count(Attendance.id).label("total"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Attendance.status == "Present",
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("present"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Attendance.status == "Absent",
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("absent"),
+            )
+            .filter(
+                Attendance.attendance_date == today
+            )
+            .first()
         )
-        .count()
-    )
 
-
-    # --------------------------------------------------
-    # TASKS
-    # --------------------------------------------------
-
-    total_tasks = (
-        db.query(Task).count()
-    )
-
-
-    pending_tasks = (
-        db.query(Task)
-        .filter(
-            Task.status == "Pending"
+        today_attendance = int(
+            attendance_summary.total or 0
         )
-        .count()
-    )
 
-
-    completed_tasks = (
-        db.query(Task)
-        .filter(
-            Task.status == "Completed"
+        present_today = int(
+            attendance_summary.present or 0
         )
-        .count()
-    )
 
-
-    in_progress_tasks = (
-        db.query(Task)
-        .filter(
-            Task.status == "In Progress"
+        absent_today = int(
+            attendance_summary.absent or 0
         )
-        .count()
-    )
 
+        # --------------------------------------------------
+        # TASK SUMMARY
+        #
+        # One database query instead of four separate
+        # task COUNT queries.
+        # --------------------------------------------------
 
-    # --------------------------------------------------
-    # RESPONSE
-    # --------------------------------------------------
+        task_summary = (
+            db.query(
+                func.count(Task.id).label("total"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Task.status == "Pending",
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("pending"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Task.status == "Completed",
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("completed"),
+                func.coalesce(
+                    func.sum(
+                        case(
+                            (
+                                Task.status == "In Progress",
+                                1,
+                            ),
+                            else_=0,
+                        )
+                    ),
+                    0,
+                ).label("in_progress"),
+            )
+            .first()
+        )
 
-    return {
+        total_tasks = int(
+            task_summary.total or 0
+        )
 
-        "employees": {
-            "total": total_employees
-        },
+        pending_tasks = int(
+            task_summary.pending or 0
+        )
 
-        "departments": {
-            "total": total_departments
-        },
+        completed_tasks = int(
+            task_summary.completed or 0
+        )
 
-        "attendance": {
+        in_progress_tasks = int(
+            task_summary.in_progress or 0
+        )
 
-            "today": today_attendance,
+        # --------------------------------------------------
+        # RESPONSE
+        # --------------------------------------------------
 
-            "present": present_today,
-
-            "absent": absent_today
-        },
-
-        "tasks": {
-
-            "total": total_tasks,
-
-            "pending": pending_tasks,
-
-            "completed": completed_tasks,
-
-            "in_progress": in_progress_tasks
+        return {
+            "employees": {
+                "total": total_employees,
+            },
+            "departments": {
+                "total": total_departments,
+            },
+            "attendance": {
+                "today": today_attendance,
+                "present": present_today,
+                "absent": absent_today,
+            },
+            "tasks": {
+                "total": total_tasks,
+                "pending": pending_tasks,
+                "completed": completed_tasks,
+                "in_progress": in_progress_tasks,
+            },
         }
-    }
+
+    except SQLAlchemyError:
+        # --------------------------------------------------
+        # DATABASE ERROR
+        # --------------------------------------------------
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate workforce summary",
+        )
+
+    except Exception:
+        # --------------------------------------------------
+        # UNEXPECTED ERROR
+        # --------------------------------------------------
+
+        db.rollback()
+
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to generate workforce summary",
+        )

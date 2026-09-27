@@ -1392,3 +1392,460 @@ def test_employee_cannot_access_audit_logs(
     )
 
     assert response.status_code == 403
+# ============================================================
+# TOKEN REVOCATION TEST
+# PASSWORD CHANGE MUST INVALIDATE OLD JWT
+# ============================================================
+
+def test_password_change_revokes_old_token(client):
+    unique_id = uuid.uuid4().hex[:8]
+
+    username = f"token_revocation_{unique_id}"
+    email = f"token_revocation_{unique_id}@example.com"
+    old_password = "OldPassword123!"
+    new_password = "NewPassword456!"
+
+    # 1. Register a test employee
+    register_response = client.post(
+        "/api/auth/register",
+        json={
+            "username": username,
+            "email": email,
+            "password": old_password,
+            "role": "Employee"
+        }
+    )
+
+    assert register_response.status_code == 200
+
+    # 2. Login and obtain the first JWT
+    login_response = client.post(
+        "/api/auth/login",
+        json={
+            "username": username,
+            "password": old_password
+        }
+    )
+
+    assert login_response.status_code == 200
+
+    old_token = login_response.json()["access_token"]
+
+    old_headers = {
+        "Authorization": f"Bearer {old_token}"
+    }
+
+    # 3. Confirm the old token works before password change
+    before_change = client.get(
+        "/api/auth/me",
+        headers=old_headers
+    )
+
+    assert before_change.status_code == 200
+
+    # 4. Change the password
+    change_password_response = client.post(
+        "/api/auth/change-password",
+        headers=old_headers,
+        json={
+            "current_password": old_password,
+            "new_password": new_password
+        }
+    )
+
+    assert change_password_response.status_code == 200
+
+    # 5. The old JWT must now be rejected
+    after_change = client.get(
+        "/api/auth/me",
+        headers=old_headers
+    )
+
+    assert after_change.status_code == 401
+
+    # 6. Login with the new password
+    new_login_response = client.post(
+        "/api/auth/login",
+        json={
+            "username": username,
+            "password": new_password
+        }
+    )
+
+    assert new_login_response.status_code == 200
+
+    new_token = new_login_response.json()["access_token"]
+
+    new_headers = {
+        "Authorization": f"Bearer {new_token}"
+    }
+
+    # 7. The newly issued JWT must work
+    after_new_login = client.get(
+        "/api/auth/me",
+        headers=new_headers
+    )
+
+    assert after_new_login.status_code == 200
+# ============================================================
+# PR-021 TRANSACTION ROLLBACK TEST
+# ============================================================
+# Verify that a failure during the employee + audit-log
+# transaction rolls back ALL changes atomically.
+# ============================================================
+
+def test_employee_create_rolls_back_on_mid_operation_failure(
+    db_session,
+    monkeypatch,
+):
+    from sqlalchemy.exc import SQLAlchemyError
+
+    from backend.audit_models import AuditLog
+    from backend.models import Employee
+    from backend.routers import employees as employees_router
+
+    # --------------------------------------------------------
+    # Create a real test user for the audit record.
+    # --------------------------------------------------------
+
+    test_user, _ = create_test_user(
+        db_session,
+        "rollback_test_admin",
+        "Admin",
+    )
+
+    unique_id = uuid.uuid4().hex[:8]
+
+    employee_email = (
+        f"rollback_test_{unique_id}@example.com"
+    )
+
+    employee_data = employees_router.EmployeeCreate(
+        name="Rollback Test Employee",
+        email=employee_email,
+        age=30,
+        salary=40000,
+    )
+
+    # --------------------------------------------------------
+    # Preserve the real audit-log function.
+    # --------------------------------------------------------
+
+    original_create_audit_log = (
+        employees_router.create_audit_log
+    )
+
+    # --------------------------------------------------------
+    # Simulate a failure AFTER:
+    #
+    # 1. Employee has been flushed to the transaction
+    # 2. Audit log has been added to the transaction
+    #
+    # but BEFORE commit.
+    # --------------------------------------------------------
+
+    def forced_mid_operation_failure(*args, **kwargs):
+        original_create_audit_log(
+            *args,
+            **kwargs,
+        )
+
+        raise SQLAlchemyError(
+            "Intentional transaction rollback test failure"
+        )
+
+    monkeypatch.setattr(
+        employees_router,
+        "create_audit_log",
+        forced_mid_operation_failure,
+    )
+
+    # --------------------------------------------------------
+    # Execute employee creation directly.
+    # --------------------------------------------------------
+
+    try:
+        employees_router.create_employee(
+            employee=employee_data,
+            db=db_session,
+            current_user=test_user,
+        )
+
+        # The endpoint MUST NOT succeed.
+        assert False, (
+            "Expected transaction failure, "
+            "but employee creation succeeded"
+        )
+
+    except Exception as exc:
+        # The endpoint should convert SQLAlchemyError
+        # into a safe HTTP 500 response.
+        assert getattr(exc, "status_code", None) == 500
+
+    # --------------------------------------------------------
+    # Clear SQLAlchemy session state.
+    # --------------------------------------------------------
+
+    db_session.expire_all()
+
+    # --------------------------------------------------------
+    # Verify employee was completely rolled back.
+    # --------------------------------------------------------
+
+    rolled_back_employee = (
+        db_session.query(Employee)
+        .filter(
+            Employee.email == employee_email
+        )
+        .first()
+    )
+
+    assert rolled_back_employee is None
+
+    # --------------------------------------------------------
+    # Verify audit log was also completely rolled back.
+    # --------------------------------------------------------
+
+    rolled_back_audit = (
+        db_session.query(AuditLog)
+        .filter(
+            AuditLog.details.contains(
+                "Rollback Test Employee"
+            )
+        )
+        .first()
+    )
+
+    assert rolled_back_audit is None
+    # ============================================================
+# PR-022 EMPLOYEE CREATE RETRY / IDEMPOTENCY TEST
+# ============================================================
+# Sending the same employee-create request twice must NOT
+# create duplicate employee records or duplicate audit logs.
+# ============================================================
+
+def test_duplicate_employee_create_is_rejected_without_duplicate_side_effects(
+    client,
+    db_session,
+):
+    from backend.audit_models import AuditLog
+    from backend.models import Employee
+
+    # --------------------------------------------------------
+    # Create an Admin user and authenticate.
+    # --------------------------------------------------------
+
+    headers = {
+        "Authorization": (
+            f"Bearer {create_test_admin(client, db_session)}"
+        )
+    }
+
+    # --------------------------------------------------------
+    # Use a unique email so this test is isolated.
+    # --------------------------------------------------------
+
+    unique_id = uuid.uuid4().hex[:8]
+
+    employee_email = (
+        f"idempotency_employee_{unique_id}@example.com"
+    )
+
+    employee_data = {
+        "name": "Idempotency Test Employee",
+        "email": employee_email,
+        "age": 30,
+        "salary": 40000,
+    }
+
+    # --------------------------------------------------------
+    # FIRST REQUEST
+    # --------------------------------------------------------
+
+    first_response = client.post(
+        "/api/employees/",
+        headers=headers,
+        json=employee_data,
+    )
+
+    assert first_response.status_code == 200
+
+    first_data = first_response.json()
+
+    assert (
+        first_data["message"]
+        == "Employee created successfully"
+    )
+
+    first_employee_id = (
+        first_data["employee"]["id"]
+    )
+
+    assert first_employee_id is not None
+
+    # --------------------------------------------------------
+    # SECOND REQUEST
+    #
+    # Simulates a client retrying the exact same request.
+    # --------------------------------------------------------
+
+    second_response = client.post(
+        "/api/employees/",
+        headers=headers,
+        json=employee_data,
+    )
+
+    # Duplicate employee email must be rejected.
+    assert second_response.status_code == 409
+
+    # --------------------------------------------------------
+    # VERIFY ONLY ONE EMPLOYEE EXISTS.
+    # --------------------------------------------------------
+
+    employees = (
+        db_session.query(Employee)
+        .filter(
+            Employee.email == employee_email
+        )
+        .all()
+    )
+
+    assert len(employees) == 1
+
+    assert employees[0].id == first_employee_id
+
+    # --------------------------------------------------------
+    # VERIFY ONLY ONE EMPLOYEE-CREATE AUDIT LOG EXISTS.
+    # --------------------------------------------------------
+
+    audit_logs = (
+        db_session.query(AuditLog)
+        .filter(
+            AuditLog.entity == "Employee",
+            AuditLog.entity_id == first_employee_id,
+            AuditLog.action == "CREATE",
+        )
+        .all()
+    )
+
+    assert len(audit_logs) == 1
+    # ============================================================
+# PR-029 — EMPLOYEE LIST N+1 QUERY VERIFICATION
+# ============================================================
+
+def test_employee_list_avoids_n_plus_one_queries(
+    client,
+    db_session,
+):
+    from sqlalchemy import event
+    from backend.database import engine
+
+    # --------------------------------------------------------
+    # Create 10 employees using the EXISTING helper.
+    #
+    # IMPORTANT:
+    # create_test_employee() only accepts db_session.
+    # It generates unique names/emails automatically.
+    # --------------------------------------------------------
+
+    employees_created = []
+
+    for _ in range(10):
+        employee = create_test_employee(db_session)
+        employees_created.append(employee)
+
+    # Make sure all employee records are committed.
+    db_session.commit()
+
+    # --------------------------------------------------------
+    # Create authenticated Admin.
+    # --------------------------------------------------------
+
+    headers = {
+        "Authorization": (
+            f"Bearer "
+            f"{create_test_admin(client, db_session)}"
+        )
+    }
+
+    # --------------------------------------------------------
+    # Count SQL statements executed by the employee-list
+    # request.
+    # --------------------------------------------------------
+
+    query_count = 0
+
+    def count_queries(
+        conn,
+        cursor,
+        statement,
+        parameters,
+        context,
+        executemany,
+    ):
+        nonlocal query_count
+        query_count += 1
+
+    event.listen(
+        engine,
+        "before_cursor_execute",
+        count_queries,
+    )
+
+    try:
+
+        response = client.get(
+            "/api/employees/?page=1&limit=10",
+            headers=headers,
+        )
+
+    finally:
+
+        event.remove(
+            engine,
+            "before_cursor_execute",
+            count_queries,
+        )
+
+    # --------------------------------------------------------
+    # API request must succeed.
+    # --------------------------------------------------------
+
+    assert response.status_code == 200
+
+    response_data = response.json()
+
+    assert isinstance(response_data, list)
+
+    # --------------------------------------------------------
+    # We created exactly 10 employees immediately before the
+    # request, so the first page with limit=10 should contain
+    # those 10 records in the isolated test database.
+    # --------------------------------------------------------
+
+    assert len(response_data) == 10
+
+    # --------------------------------------------------------
+    # PR-029 N+1 protection.
+    #
+    # The employee endpoint uses joinedload() for:
+    #
+    #   Employee.department
+    #   Employee.manager
+    #
+    # Therefore loading 10 employees should NOT result in
+    # 10 additional relationship queries.
+    #
+    # Authentication can execute additional SQL statements,
+    # so we use a small fixed upper bound instead of requiring
+    # exactly one SQL query.
+    # --------------------------------------------------------
+
+    assert query_count <= 5, (
+        f"Possible N+1 query problem: "
+        f"{query_count} SQL statements executed."
+    )
+
+    print(
+        f"PR-029 query count: {query_count}"
+    )
