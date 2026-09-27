@@ -663,7 +663,55 @@
                 margin: 20px auto;
             }
         }
-    </style>
+    
+        .account-payslips {
+            margin-top: 20px;
+        }
+
+        .account-payslips h3 {
+            color: #12395b;
+            margin-bottom: 12px;
+        }
+
+        .account-empty {
+            padding: 15px;
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            background: #f8fafc;
+            color: #6b7280;
+        }
+
+        .payslip-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+        }
+
+        .payslip-table {
+            width: 100%;
+            min-width: 620px;
+            margin-top: 0;
+        }
+
+        .payslip-table th {
+            white-space: nowrap;
+        }
+
+        .payslip-table td {
+            white-space: nowrap;
+        }
+
+        @media (max-width: 600px) {
+            .account-details {
+                display: block;
+            }
+
+            .payslip-table-wrapper {
+                max-width: 100%;
+            }
+        }
+</style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 </head>
@@ -6959,77 +7007,185 @@
 
     async function openAccountModal() {
 
-        const modal =
-            document.getElementById("accountModal");
-
-        const message =
-            document.getElementById("accountMessage");
+        const modal = document.getElementById("accountModal");
+        const message = document.getElementById("accountMessage");
 
         message.style.display = "none";
+        message.textContent = "";
 
         try {
+            const response = await fetch(
+                `${API}/api/auth/me`,
+                {
+                    method: "GET",
+                    headers: authHeaders(),
+                    cache: "no-store"
+                }
+            );
 
-            const response =
-                await fetch(
-                    `${API}/api/auth/me`,
-                    {
-                        headers: authHeaders()
-                    }
+            const contentType = response.headers.get("content-type") || "";
+            let result = {};
+
+            if (contentType.includes("application/json")) {
+                result = await response.json();
+            } else {
+                const text = await response.text();
+                throw new Error(
+                    response.ok
+                        ? "The account API returned an unexpected response."
+                        : `Account request failed (${response.status}). ${text.slice(0, 160)}`
                 );
-
-            const result =
-                await response.json();
+            }
 
             if (!response.ok) {
                 throw new Error(
                     result.detail ||
-                    "Failed to load account information."
+                    result.message ||
+                    `Failed to load account information (${response.status}).`
                 );
             }
 
-            document.getElementById(
-                "accountUsername"
-            ).value =
-                result.username || "";
+            const profile = result.employee_profile || result.employee || result.profile || {};
+            const metadata = result.profile_metadata || profile.profile_metadata || {};
 
-            document.getElementById(
-                "accountEmail"
-            ).value =
-                result.email || "";
+            const jobRole =
+                profile.job_role ??
+                metadata.job_role ??
+                result.job_role ??
+                "Not available";
 
-            document.getElementById(
-                "accountRole"
-            ).value =
-                result.role || "";
+            const department =
+                profile.department ??
+                (typeof profile.department_name === "string" ? profile.department_name : null) ??
+                result.department ??
+                result.department_name ??
+                "Not available";
 
-            document.getElementById(
-                "currentPassword"
-            ).value = "";
+            const salary =
+                profile.salary ??
+                result.salary ??
+                "Not available";
 
-            document.getElementById(
-                "newPassword"
-            ).value = "";
+            let payslips =
+                Array.isArray(profile.payslips)
+                    ? profile.payslips
+                    : Array.isArray(metadata.payslips)
+                        ? metadata.payslips
+                        : Array.isArray(result.payslips)
+                            ? result.payslips
+                            : [];
 
-            document.getElementById(
-                "confirmNewPassword"
-            ).value = "";
+            const latestPayslip =
+                profile.latest_payslip ||
+                result.latest_payslip ||
+                (payslips.length ? payslips[payslips.length - 1] : null);
+
+            const deduction =
+                latestPayslip?.deductions ??
+                latestPayslip?.deduction ??
+                latestPayslip?.total_deductions ??
+                profile.deduction ??
+                result.deduction ??
+                "Not available";
+
+            document.getElementById("accountUsername").value = result.username || "";
+            document.getElementById("accountEmail").value = result.email || "";
+            document.getElementById("accountRole").value = result.role || "";
+            document.getElementById("accountJobRole").value = jobRole;
+            document.getElementById("accountDepartment").value = department;
+            document.getElementById("accountSalary").value = formatMoney(salary);
+            document.getElementById("accountDeduction").value = formatMoney(deduction);
+
+            renderPayslips(payslips);
+
+            document.getElementById("currentPassword").value = "";
+            document.getElementById("newPassword").value = "";
+            document.getElementById("confirmNewPassword").value = "";
 
             modal.style.display = "block";
 
-        }
-
-        catch (error) {
-
+        } catch (error) {
+            console.error("Account loading error:", error);
             showMessage(
                 "accountMessage",
-                error.message,
+                error.message || "Unable to load account information.",
                 false
             );
-
             modal.style.display = "block";
+        }
+    }
 
+
+    function formatMoney(value) {
+        if (value === null || value === undefined || value === "" || value === "Not available") {
+            return "Not available";
         }
 
+        const number = Number(value);
+        if (!Number.isFinite(number)) {
+            return String(value);
+        }
+
+        return `₹${number.toLocaleString("en-IN", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        })}`;
+    }
+
+
+    function escapeAccountHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+
+    function renderPayslips(payslips) {
+        const container = document.getElementById("payslipList");
+
+        if (!container) {
+            return;
+        }
+
+        if (!Array.isArray(payslips) || payslips.length === 0) {
+            container.innerHTML = '<div class="account-empty">No payslips available.</div>';
+            return;
+        }
+
+        const rows = payslips.map(function(payslip) {
+            const month = payslip?.month || payslip?.period || payslip?.pay_period || "-";
+            const gross = payslip?.gross_salary ?? payslip?.gross ?? payslip?.salary ?? "-";
+            const deductions = payslip?.deductions ?? payslip?.deduction ?? payslip?.total_deductions ?? "-";
+            const net = payslip?.net_salary ?? payslip?.net ?? "-";
+
+            return `
+                <tr>
+                    <td>${escapeAccountHtml(month)}</td>
+                    <td>${escapeAccountHtml(formatMoney(gross))}</td>
+                    <td>${escapeAccountHtml(formatMoney(deductions))}</td>
+                    <td>${escapeAccountHtml(formatMoney(net))}</td>
+                </tr>
+            `;
+        }).join("");
+
+        container.innerHTML = `
+            <div class="payslip-table-wrapper">
+                <table class="payslip-table">
+                    <thead>
+                        <tr>
+                            <th>Month</th>
+                            <th>Gross Salary</th>
+                            <th>Deduction</th>
+                            <th>Net Salary</th>
+                        </tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            </div>
+        `;
     }
 
 
@@ -7210,41 +7366,47 @@
         <div class="account-details">
 
             <div class="form-group">
-
-                <label>Username</label>
-
-                <input
-                    id="accountUsername"
-                    type="text"
-                    readonly
-                >
-
+                <label for="accountUsername">Username</label>
+                <input id="accountUsername" type="text" readonly>
             </div>
 
             <div class="form-group">
-
-                <label>Email</label>
-
-                <input
-                    id="accountEmail"
-                    type="email"
-                    readonly
-                >
-
+                <label for="accountEmail">Email</label>
+                <input id="accountEmail" type="email" readonly>
             </div>
 
             <div class="form-group">
-
-                <label>Role</label>
-
-                <input
-                    id="accountRole"
-                    type="text"
-                    readonly
-                >
-
+                <label for="accountRole">Role</label>
+                <input id="accountRole" type="text" readonly>
             </div>
 
+            <div class="form-group">
+                <label for="accountJobRole">Job Role</label>
+                <input id="accountJobRole" type="text" readonly value="Not available">
+            </div>
+
+            <div class="form-group">
+                <label for="accountDepartment">Department</label>
+                <input id="accountDepartment" type="text" readonly value="Not available">
+            </div>
+
+            <div class="form-group">
+                <label for="accountSalary">Salary</label>
+                <input id="accountSalary" type="text" readonly value="Not available">
+            </div>
+
+            <div class="form-group">
+                <label for="accountDeduction">Salary Deduction</label>
+                <input id="accountDeduction" type="text" readonly value="Not available">
+            </div>
+
+        </div>
+
+        <div class="account-payslips">
+            <h3>Payslips</h3>
+            <div id="payslipList">
+                <div class="account-empty">Loading payslips...</div>
+            </div>
         </div>
 
         <hr style="margin:20px 0;">
