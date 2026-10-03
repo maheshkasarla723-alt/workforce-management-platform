@@ -3,12 +3,12 @@
 A production-oriented full-stack Workforce Management Platform built with Python, FastAPI, SQLAlchemy, PostgreSQL, HTML, CSS, and JavaScript.
 
 The platform provides employee management, departments, attendance, tasks, notifications, audit logging, authentication, role-based access control, dashboard reporting, security controls, automated testing, database migrations, performance indexes, backup/recovery support, CI, and production deployment configuration.
+The Workforce Management Platform is designed to help organizations manage workforce information and employee-related activities through a centralized web application.
 
 ---
 
 # 1. Project Overview
 
-The Workforce Management Platform is designed to help organizations manage workforce information and employee-related activities through a centralized web application.
 
 ## Main Features
 

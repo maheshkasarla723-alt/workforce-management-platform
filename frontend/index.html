@@ -713,7 +713,7 @@
         }
 </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
+<script src="/frontend/payslips.js"></script>
 </head>
 
 <body>
@@ -7096,7 +7096,13 @@
             document.getElementById("accountSalary").value = formatMoney(salary);
             document.getElementById("accountDeduction").value = formatMoney(deduction);
 
-            renderPayslips(payslips);
+            renderPayslips(
+      payslips,
+    profile.name ||
+    result.name ||
+    result.username ||
+    "Employee"
+);
 
             document.getElementById("currentPassword").value = "";
             document.getElementById("newPassword").value = "";
@@ -7144,58 +7150,33 @@
 
 
     function renderPayslips(payslips) {
-        const container = document.getElementById("payslipList");
 
-        if (!container) {
-            return;
+    if (
+        window.PayslipsModule &&
+        typeof window.PayslipsModule.setPayslips === "function"
+    ) {
+
+        const container =
+            document.getElementById("payslipList");
+
+        if (container) {
+            container.innerHTML =
+                window.PayslipsModule.renderPayslips(payslips);
         }
 
-        if (!Array.isArray(payslips) || payslips.length === 0) {
-            container.innerHTML = '<div class="account-empty">No payslips available.</div>';
-            return;
-        }
-
-        const rows = payslips.map(function(payslip) {
-            const month = payslip?.month || payslip?.period || payslip?.pay_period || "-";
-            const gross = payslip?.gross_salary ?? payslip?.gross ?? payslip?.salary ?? "-";
-            const deductions = payslip?.deductions ?? payslip?.deduction ?? payslip?.total_deductions ?? "-";
-            const net = payslip?.net_salary ?? payslip?.net ?? "-";
-
-            return `
-                <tr>
-                    <td>${escapeAccountHtml(month)}</td>
-                    <td>${escapeAccountHtml(formatMoney(gross))}</td>
-                    <td>${escapeAccountHtml(formatMoney(deductions))}</td>
-                    <td>${escapeAccountHtml(formatMoney(net))}</td>
-                </tr>
-            `;
-        }).join("");
-
-        container.innerHTML = `
-            <div class="payslip-table-wrapper">
-                <table class="payslip-table">
-                    <thead>
-                        <tr>
-                            <th>Month</th>
-                            <th>Gross Salary</th>
-                            <th>Deduction</th>
-                            <th>Net Salary</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            </div>
-        `;
+        return;
     }
 
+    console.error("Payslips module is not loaded.");
+}
 
-    function closeAccountModal() {
+function closeAccountModal() {
 
-        document.getElementById(
-            "accountModal"
-        ).style.display = "none";
+    document.getElementById(
+        "accountModal"
+    ).style.display = "none";
 
-    }
+}
 
 
     async function changePassword() {
@@ -7481,6 +7462,7 @@
     </div>
 
 </div>
+<script src="/frontend/payslips.js"></script>
 
 </body>
 </html>
