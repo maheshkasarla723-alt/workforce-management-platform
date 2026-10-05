@@ -425,7 +425,6 @@
             gap: 24px;
             align-items: start;
         }
-
         .sidebar {
             position: sticky;
             top: 20px;
@@ -714,6 +713,7 @@
 </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/frontend/payslips.js"></script>
+<script src="/frontend/employee-profile.js"></script>
 </head>
 
 <body>
@@ -4223,7 +4223,7 @@
                         <th>Department</th>
                         <th>Manager</th>
                         <th>Skills</th>
-                        <th>Profile Metadata</th>
+                        <th>Payslip</th>
                         <th>Actions</th>
                     </tr>
 
@@ -4232,26 +4232,26 @@
                 <tbody>
         `;
 
-        employeeList.forEach(employee => {
+if (
+    window.EmployeeProfileModule &&
+    typeof window.EmployeeProfileModule.setEmployees === "function"
+) {
+    window.EmployeeProfileModule.setEmployees(employeeList);
+}
 
-            const departmentName =
-                employee.department
-                    ? employee.department.name
-                    : "Not Assigned";
+employeeList.forEach(employee => {
 
-            const managerName =
-                employee.manager_name ||
-                getEmployeeName(employee.manager_id) ||
-                "No Manager";
+    const departmentName =
+        employee.department
+            ? employee.department.name
+            : "Not Assigned";
 
-            const metadata =
-                employee.profile_metadata
-                    ? JSON.stringify(
-                        employee.profile_metadata,
-                        null,
-                        2
-                    )
-                    : "-";
+    const managerName =
+        employee.manager_name ||
+        getEmployeeName(employee.manager_id) ||
+        "No Manager";
+
+        
 
             html += `
 
@@ -4305,10 +4305,14 @@
                     </td>
 
                     <td>
-                        <div class="metadata-box">
-                            ${escapeHtml(metadata)}
-                        </div>
-                    </td>
+    <button
+        type="button"
+        class="btn-success"
+        onclick="EmployeeProfileModule.viewEmployeePayslip(${employee.id})"
+    >
+        View Payslip
+    </button>
+</td>
 
                     <td>
 

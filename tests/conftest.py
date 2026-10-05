@@ -7,7 +7,9 @@ import pytest
 from sqlalchemy import create_engine, event
 from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.pool import StaticPool
+from sqlalchemy.pool import QueuePool
+from sqlalchemy.orm import sessionmaker
+
 from fastapi.testclient import TestClient
 
 
@@ -31,13 +33,6 @@ if str(PROJECT_ROOT) not in sys.path:
 # ============================================================
 # SQLITE COMPATIBILITY FOR POSTGRESQL JSONB
 # ============================================================
-#
-# Production uses PostgreSQL.
-# SQLite does not have PostgreSQL's JSONB type.
-#
-# For tests only, compile JSONB as SQLite JSON.
-# The production model is NOT changed.
-# ============================================================
 
 @compiles(JSONB, "sqlite")
 def compile_jsonb_for_sqlite(type_, compiler, **kwargs):
@@ -47,8 +42,25 @@ def compile_jsonb_for_sqlite(type_, compiler, **kwargs):
 # ============================================================
 # TEST DATABASE
 # ============================================================
+#
+# IMPORTANT:
+# Do NOT use:
+#
+#     sqlite://
+#     StaticPool
+#
+# because concurrent requests would share the same SQLite
+# connection.
+#
+# A file-based SQLite database + QueuePool allows separate
+# connections for concurrent requests.
+# ============================================================
 
-TEST_DATABASE_URL = "sqlite://"
+TEST_DATABASE_PATH = PROJECT_ROOT / "test_workforce.db"
+
+TEST_DATABASE_URL = (
+    f"sqlite:///{TEST_DATABASE_PATH}"
+)
 
 
 # ============================================================
@@ -57,8 +69,13 @@ TEST_DATABASE_URL = "sqlite://"
 
 test_engine = create_engine(
     TEST_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
+    connect_args={
+        "check_same_thread": False,
+    },
+    poolclass=QueuePool,
+    pool_size=10,
+    max_overflow=20,
+    pool_timeout=30,
 )
 
 
@@ -69,7 +86,7 @@ test_engine = create_engine(
 @event.listens_for(test_engine, "connect")
 def enable_sqlite_foreign_keys(
     dbapi_connection,
-    connection_record
+    connection_record,
 ):
     cursor = dbapi_connection.cursor()
 
@@ -89,12 +106,23 @@ from backend.database import Base, get_db
 
 
 # ============================================================
-# CREATE TEST TABLES
+# SESSION FACTORY
+# ============================================================
+
+TestingSessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=test_engine,
+)
+
+
+# ============================================================
+# CREATE TEST DATABASE
 # ============================================================
 
 @pytest.fixture(
     scope="session",
-    autouse=True
+    autouse=True,
 )
 def create_test_database():
 
@@ -112,52 +140,84 @@ def create_test_database():
         bind=test_engine
     )
 
+    test_engine.dispose()
+
+    if TEST_DATABASE_PATH.exists():
+        try:
+            TEST_DATABASE_PATH.unlink()
+        except PermissionError:
+            pass
+
 
 # ============================================================
-# DATABASE SESSION
+# DATABASE SESSION FOR TEST CODE
+# ============================================================
+#
+# This session is ONLY for the test itself.
+#
+# It is NOT shared with FastAPI requests.
 # ============================================================
 
 @pytest.fixture()
 def db_session():
 
-    from sqlalchemy.orm import sessionmaker
-
-    TestingSessionLocal = sessionmaker(
-        autocommit=False,
-        autoflush=False,
-        bind=test_engine,
-    )
-
     db = TestingSessionLocal()
 
     try:
+
         yield db
 
     finally:
+
+        db.rollback()
         db.close()
 
 
 # ============================================================
 # FASTAPI TEST CLIENT
 # ============================================================
+#
+# IMPORTANT:
+#
+# Every HTTP request gets a NEW SQLAlchemy Session.
+#
+# We do NOT use the db_session fixture here.
+#
+# This is what fixes the concurrency error.
+# ============================================================
 
 @pytest.fixture()
-def client(db_session):
+def client():
 
     def override_get_db():
 
+        db = TestingSessionLocal()
+
         try:
-            yield db_session
+
+            yield db
+
+        except Exception:
+
+            db.rollback()
+            raise
 
         finally:
-            pass
+
+            db.close()
+
 
     app.dependency_overrides[
         get_db
     ] = override_get_db
 
-    with TestClient(app) as test_client:
 
-        yield test_client
+    try:
 
-    app.dependency_overrides.clear()
+        with TestClient(app) as test_client:
+
+            yield test_client
+
+    finally:
+
+        app.dependency_overrides.clear()
