@@ -702,6 +702,458 @@
             white-space: nowrap;
         }
 
+
+        /* =========================================================
+           EMPLOYEE MANAGEMENT - CLEAN CORPORATE UI
+           ========================================================= */
+
+        .employee-management-section {
+            overflow: hidden;
+        }
+
+
+        .employee-management-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            margin-bottom: 20px;
+            padding-bottom: 18px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+
+        .employee-management-title h2 {
+            margin: 0;
+            color: #0f172a;
+            font-size: 24px;
+            font-weight: 750;
+        }
+
+
+        .employee-management-title p {
+            margin: 6px 0 0;
+            color: #64748b;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+
+        .employee-management-header-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+
+        .employee-management-header-actions button {
+            white-space: nowrap;
+        }
+
+
+        .employee-load-btn {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+        }
+
+
+        .employee-load-btn:hover {
+            background: #dbeafe !important;
+        }
+
+
+        .employee-add-btn {
+            background: #1e3a8a !important;
+            color: #ffffff !important;
+            border: 1px solid #1e3a8a !important;
+        }
+
+
+        .employee-add-btn:hover {
+            background: #172554 !important;
+        }
+
+
+        /* Employee filters */
+
+        .employee-management-section .employee-filter-grid {
+            display: grid;
+            grid-template-columns:
+                repeat(4, minmax(170px, 1fr));
+            gap: 14px;
+            padding: 16px;
+            margin-bottom: 14px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+        }
+
+
+        .employee-management-section .employee-filter-grid .form-group {
+            margin-bottom: 0;
+        }
+
+
+        .employee-management-section .employee-filter-grid label {
+            display: block;
+            margin-bottom: 6px;
+            color: #475569;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+
+        .employee-management-section .employee-filter-grid input,
+        .employee-management-section .employee-filter-grid select {
+            width: 100%;
+            height: 40px;
+            padding: 0 11px;
+            background: #ffffff;
+            border: 1px solid #cbd5e1;
+            border-radius: 7px;
+            color: #334155;
+            font-size: 13px;
+            outline: none;
+        }
+
+
+        .employee-management-section .employee-filter-grid input:focus,
+        .employee-management-section .employee-filter-grid select:focus {
+            border-color: #2563eb;
+            box-shadow:
+                0 0 0 3px
+                rgba(37, 99, 235, 0.10);
+        }
+
+
+        .employee-management-section .employee-filter-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 16px;
+        }
+
+
+        .employee-management-section .employee-filter-actions select {
+            height: 40px !important;
+            padding: 0 11px !important;
+            background: #ffffff !important;
+            border: 1px solid #cbd5e1 !important;
+            border-radius: 7px !important;
+            color: #334155 !important;
+        }
+
+
+        .employee-management-section #employeeFilterSummary {
+            color: #64748b !important;
+            font-size: 13px;
+            margin-bottom: 12px !important;
+        }
+
+
+        /* Employee table */
+
+        .employee-table-wrapper {
+            width: 100%;
+            overflow-x: auto;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            box-shadow:
+                0 2px 8px
+                rgba(15, 23, 42, 0.05);
+        }
+
+
+        .employee-management-table {
+            width: 100%;
+            min-width: 1180px;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 0 !important;
+            background: #ffffff;
+        }
+
+
+        .employee-management-table thead th {
+            background: #f8fafc !important;
+            color: #475569 !important;
+            padding: 13px 15px !important;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 11px !important;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+
+        .employee-management-table tbody td {
+            padding: 14px 15px !important;
+            color: #334155;
+            font-size: 13px;
+            border-bottom: 1px solid #eef2f7;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+
+        .employee-management-table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+
+        .employee-management-table tbody tr:hover {
+            background: #f8fafc !important;
+        }
+
+
+        .employee-management-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+
+        .employee-id-cell {
+            color: #64748b !important;
+            font-weight: 700;
+        }
+
+
+        .employee-name-cell {
+            min-width: 150px;
+        }
+
+
+        .employee-name {
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+
+        .employee-email-cell {
+            min-width: 190px;
+            color: #64748b !important;
+        }
+
+
+        .employee-salary-cell {
+            color: #0f172a !important;
+            font-weight: 700;
+        }
+
+
+        /* Status pills */
+
+        .employee-status {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 70px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+        }
+
+
+        .status-active {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+
+        .status-inactive {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+
+        .status-leave {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+
+        /* Table action buttons */
+
+        .employee-action-buttons {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            flex-wrap: nowrap;
+        }
+
+
+        .table-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 30px;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+
+
+        .payslip-cell {
+            text-align: center;
+        }
+
+
+        .payslip-btn {
+            background: #eff6ff !important;
+            color: #1d4ed8 !important;
+            border: 1px solid #bfdbfe !important;
+        }
+
+
+        .payslip-btn:hover {
+            background: #dbeafe !important;
+        }
+
+
+        .profile-btn {
+            background: #f1f5f9 !important;
+            color: #334155 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+
+        .profile-btn:hover {
+            background: #e2e8f0 !important;
+        }
+
+
+        .edit-btn {
+            background: #f8fafc !important;
+            color: #334155 !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+
+
+        .edit-btn:hover {
+            background: #e2e8f0 !important;
+        }
+
+
+        .delete-btn {
+            background: #fff1f2 !important;
+            color: #be123c !important;
+            border: 1px solid #fecdd3 !important;
+        }
+
+
+        .delete-btn:hover {
+            background: #ffe4e6 !important;
+        }
+
+
+        /* Empty employee state */
+
+        .employee-empty-state {
+            padding: 55px 20px;
+            text-align: center;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+        }
+
+
+        .employee-empty-icon {
+            margin-bottom: 10px;
+            font-size: 40px;
+        }
+
+
+        .employee-empty-state h3 {
+            margin: 0 0 6px;
+            color: #0f172a;
+            font-size: 18px;
+        }
+
+
+        .employee-empty-state p {
+            margin: 0;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+
+        /* Employee pagination */
+
+        .employee-management-section .employee-pagination {
+            margin-top: 16px;
+            padding: 14px 0 0;
+            border-top: 1px solid #e5e7eb;
+        }
+
+
+        .employee-management-section .employee-page-info {
+            color: #475569;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
+
+        /* Responsive Employee UI */
+
+        @media (max-width: 1100px) {
+
+            .employee-management-section .employee-filter-grid {
+                grid-template-columns:
+                    repeat(2, minmax(170px, 1fr));
+            }
+
+        }
+
+
+        @media (max-width: 700px) {
+
+            .employee-management-header {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+
+            .employee-management-header-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+
+
+            .employee-management-header-actions button {
+                flex: 1;
+            }
+
+
+            .employee-management-section .employee-filter-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .employee-management-section .employee-filter-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+
+            .employee-management-section .employee-filter-actions select,
+            .employee-management-section .employee-filter-actions button {
+                width: 100% !important;
+            }
+
+        }
+
+
         @media (max-width: 600px) {
             .account-details {
                 display: block;
@@ -711,296 +1163,168 @@
                 max-width: 100%;
             }
         }
-
-
-        /* CLEAN EMPLOYEE MANAGEMENT TABLE */
-        .employee-table-shell { width: 100%; overflow-x: auto; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; box-shadow: 0 4px 14px rgba(15,23,42,.05); scrollbar-width: thin; }
-        .employee-clean-table { width: 100%; min-width: 1040px; border-collapse: separate; border-spacing: 0; background: #fff; }
-        .employee-clean-table th { padding: 12px 14px; background: #f8fafc; color: #64748b; border-bottom: 1px solid #e2e8f0; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; text-align: left; }
-        .employee-clean-table td { padding: 13px 14px; background: #fff; color: #334155; border-bottom: 1px solid #eef2f7; font-size: 13px; vertical-align: middle; white-space: nowrap; }
-        .employee-clean-table tbody tr:last-child td { border-bottom: none; }
-        .employee-clean-table tbody tr:hover td { background: #f8fbff; }
-        .employee-id-col { width: 52px; color: #64748b !important; font-weight: 600; }
-        .employee-name-cell { min-width: 150px; }
-        .employee-name { color: #0f172a; font-weight: 650; }
-        .employee-email-cell { max-width: 190px; overflow: hidden; text-overflow: ellipsis; }
-        .job-role-text, .department-text { color: #475569; }
-        .salary-col { text-align: right !important; }
-        .salary-value { color: #0f172a !important; font-weight: 700; }
-        .joining-date-cell { color: #64748b !important; }
-        .employee-status { display: inline-flex; align-items: center; justify-content: center; min-width: 64px; padding: 5px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; line-height: 1; }
-        .employee-status.active, .employee-status.badge-active { background: #dcfce7; color: #15803d; }
-        .employee-status.inactive, .employee-status.badge-inactive { background: #f1f5f9; color: #64748b; }
-        .employee-status.leave, .employee-status.badge-leave { background: #fef3c7; color: #a16207; }
-        .payslip-col, .actions-col { text-align: center !important; }
-        .employee-payslip-btn, .employee-action-btn { height: 30px; padding: 0 10px; border-radius: 7px; font-size: 11px; font-weight: 650; font-family: inherit; cursor: pointer; transition: all .15s ease; white-space: nowrap; }
-        .employee-payslip-btn { background: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
-        .employee-payslip-btn:hover { background: #dbeafe; border-color: #93c5fd; }
-        .employee-action-buttons { display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
-        .employee-profile-btn { background: #f8fafc; color: #334155; border: 1px solid #cbd5e1; }
-        .employee-profile-btn:hover { background: #f1f5f9; border-color: #94a3b8; }
-        .employee-edit-btn { background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; }
-        .employee-edit-btn:hover { background: #dbeafe; border-color: #93c5fd; }
-        .employee-delete-btn { background: #fff1f2; color: #be123c; border: 1px solid #fecdd3; }
-        .employee-delete-btn:hover { background: #ffe4e6; border-color: #fda4af; }
-        .employee-payslip-btn:focus-visible, .employee-action-btn:focus-visible { outline: 3px solid rgba(59,130,246,.18); outline-offset: 1px; }
-        .employee-empty-state { padding: 48px 24px; text-align: center; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; }
-        .employee-empty-icon { font-size: 28px; margin-bottom: 8px; opacity: .65; }
-        .employee-empty-title { color: #0f172a; font-size: 16px; font-weight: 700; }
-        .employee-empty-text { margin-top: 5px; color: #64748b; font-size: 13px; }
-        @media (max-width: 900px) { .employee-clean-table { min-width: 980px; } .employee-clean-table th, .employee-clean-table td { padding: 11px 10px; } .employee-action-buttons { gap: 4px; } .employee-payslip-btn, .employee-action-btn { padding: 0 8px; } }
-
-        /* =========================================================
-           CLEAN EMPLOYEE TABLE - FINAL RESPONSIVE VERSION
-        ========================================================= */
-
-        .employee-table-shell.employee-table-clean {
-            width: 100%;
-            max-width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
-        }
-
-        .employee-table-clean .employee-clean-table {
-            width: 100%;
-            min-width: 860px;
-            table-layout: auto;
-        }
-
-        .employee-table-clean .employee-clean-table th {
-            padding: 11px 12px;
-            background: #f8fafc;
-            color: #64748b;
-            font-size: 10.5px;
-            font-weight: 700;
-            letter-spacing: .035em;
-            text-transform: uppercase;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        .employee-table-clean .employee-clean-table td {
-            padding: 11px 12px;
-            font-size: 12px;
-            line-height: 1.25;
-            border-bottom: 1px solid #eef2f7;
-            vertical-align: middle;
-        }
-
-        .employee-table-clean .employee-clean-table tbody tr:hover td {
-            background: #f8fbff;
-        }
-
-        .employee-table-clean .employee-id-col {
-            width: 45px;
-            min-width: 45px;
-            text-align: center !important;
-        }
-
-        .employee-table-clean .employee-name-cell {
-            min-width: 165px;
-            max-width: 210px;
-        }
-
-        .employee-table-clean .employee-name {
-            color: #0f172a;
-            font-size: 12.5px;
-            font-weight: 700;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .employee-email-inline {
-            margin-top: 3px;
-            max-width: 205px;
-            color: #94a3b8;
-            font-size: 10.5px;
-            font-weight: 400;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .employee-table-clean .job-role-text,
-        .employee-table-clean .department-text {
-            color: #475569;
-            font-size: 11.5px;
-        }
-
-        .employee-table-clean .salary-col {
-            min-width: 80px;
-            text-align: right !important;
-        }
-
-        .employee-table-clean .salary-value {
-            color: #0f172a !important;
-            font-weight: 700;
-        }
-
-        .employee-table-clean .joining-date-cell {
-            color: #64748b !important;
-            white-space: nowrap;
-        }
-
-        .employee-table-clean .employee-status {
-            min-width: 60px;
-            padding: 5px 9px;
-            border-radius: 999px;
-            font-size: 10.5px;
-        }
-
-        .employee-table-clean .payslip-col {
-            min-width: 65px;
-            text-align: center !important;
-        }
-
-        .employee-table-clean .actions-col {
-            min-width: 190px;
-            text-align: center !important;
-        }
-
-        .employee-table-clean .employee-action-buttons {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 4px;
-        }
-
-        .employee-table-clean .employee-payslip-btn,
-        .employee-table-clean .employee-action-btn {
-            height: 29px;
-            min-width: auto;
-            padding: 0 9px;
-            border-radius: 7px;
-            font-family: inherit;
-            font-size: 10.5px;
-            font-weight: 650;
-            white-space: nowrap;
-            transition: background .15s ease, border-color .15s ease, transform .15s ease;
-        }
-
-        .employee-table-clean .employee-payslip-btn {
-            background: #eff6ff;
-            color: #2563eb;
-            border: 1px solid #bfdbfe;
-        }
-
-        .employee-table-clean .employee-payslip-btn:hover {
-            background: #dbeafe;
-            border-color: #93c5fd;
-            transform: translateY(-1px);
-        }
-
-        .employee-table-clean .employee-profile-btn {
-            background: #f8fafc;
-            color: #334155;
-            border: 1px solid #cbd5e1;
-        }
-
-        .employee-table-clean .employee-profile-btn:hover {
-            background: #f1f5f9;
-            border-color: #94a3b8;
-            transform: translateY(-1px);
-        }
-
-        .employee-table-clean .employee-edit-btn {
-            background: #eff6ff;
-            color: #1d4ed8;
-            border: 1px solid #bfdbfe;
-        }
-
-        .employee-table-clean .employee-edit-btn:hover {
-            background: #dbeafe;
-            border-color: #93c5fd;
-            transform: translateY(-1px);
-        }
-
-        .employee-table-clean .employee-delete-btn {
-            background: #fff1f2;
-            color: #be123c;
-            border: 1px solid #fecdd3;
-        }
-
-        .employee-table-clean .employee-delete-btn:hover {
-            background: #ffe4e6;
-            border-color: #fda4af;
-            transform: translateY(-1px);
-        }
-
-        /* Cleaner Employee Management heading */
-        #employeeSection > h2 {
-            margin: 0 0 4px;
-            color: #12395b;
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        #employeeSection > h2::after {
-            content: "Manage employees, roles, departments and payroll information.";
-            display: block;
-            margin-top: 5px;
-            color: #64748b;
-            font-size: 12px;
-            font-weight: 400;
-        }
-
-        #employeeSection > .top-controls {
-            justify-content: flex-end;
-            margin-top: 14px;
-            margin-bottom: 16px;
-        }
-
-        #employeeSection > .top-controls .btn-primary {
-            background: #f8fafc;
-            color: #334155;
-            border: 1px solid #cbd5e1;
-        }
-
-        #employeeSection > .top-controls .btn-primary:hover {
-            background: #f1f5f9;
-            opacity: 1;
-        }
-
-        #employeeSection > .top-controls .btn-success {
-            background: #2563eb;
-            color: #ffffff;
-        }
-
-        #employeeSection > .top-controls .btn-success:hover {
-            background: #1d4ed8;
-            opacity: 1;
-        }
-
-        @media (max-width: 950px) {
-            .employee-table-clean .employee-clean-table {
-                min-width: 820px;
-            }
-
-            .employee-table-clean .employee-clean-table th,
-            .employee-table-clean .employee-clean-table td {
-                padding-left: 9px;
-                padding-right: 9px;
-            }
-
-            .employee-table-clean .actions-col {
-                min-width: 180px;
-            }
-
-            .employee-table-clean .employee-payslip-btn,
-            .employee-table-clean .employee-action-btn {
-                padding: 0 7px;
-                font-size: 10px;
-            }
-        }
-
 </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="/frontend/payslips.js"></script>
 <script src="/frontend/employee-profile.js"></script>
+
+<style id="profile-ui-enhancement">
+/* Clean My Account / Employee Profile UI */
+#accountModal .modal-content{
+    width:min(960px,calc(100vw - 32px));
+    max-width:960px;
+    max-height:calc(100vh - 32px);
+    overflow-y:auto;
+    padding:0;
+    border-radius:16px;
+    background:#f8fafc;
+}
+#accountModal .modal-header{
+    position:sticky;
+    top:0;
+    z-index:10;
+    margin:0;
+    padding:20px 26px;
+    background:#fff;
+    border-bottom:1px solid #e2e8f0;
+}
+#accountModal .modal-header h2{
+    margin:0;
+    color:#173f63;
+    font-size:25px;
+}
+#accountModal .close-btn{
+    width:38px;
+    height:38px;
+    border:1px solid #e2e8f0;
+    border-radius:8px;
+    background:#f8fafc;
+    color:#475569;
+}
+#accountModal #accountMessage{margin:16px 26px 0}
+#accountModal .account-details{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:14px 16px;
+    margin:20px 26px;
+}
+#accountModal .account-details:before{
+    content:"Employee Information";
+    grid-column:1/-1;
+    color:#173f63;
+    font-size:18px;
+    font-weight:700;
+    margin-bottom:2px;
+}
+#accountModal .form-group{margin:0}
+#accountModal .form-group label{
+    display:block;
+    margin-bottom:6px;
+    color:#334155;
+    font-size:13px;
+    font-weight:700;
+}
+#accountModal .form-group input{
+    width:100%;
+    box-sizing:border-box;
+    min-height:44px;
+    padding:10px 12px;
+    border:1px solid #cbd5e1;
+    border-radius:8px;
+    background:#fff;
+    color:#334155;
+}
+#accountModal .form-group input[readonly]{background:#f8fafc}
+#accountModal .account-payslips{
+    margin:8px 26px 20px;
+    padding:18px;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    background:#fff;
+}
+#accountModal .account-payslips h3{
+    margin:0 0 14px;
+    color:#173f63;
+    font-size:19px;
+}
+#accountModal #payslipList{overflow-x:auto}
+#accountModal #payslipList table{
+    width:100%;
+    min-width:680px;
+    border-collapse:collapse;
+}
+#accountModal #payslipList th{
+    padding:11px 12px;
+    background:#f1f5f9;
+    color:#475569;
+    font-size:11px;
+    text-align:left;
+    text-transform:uppercase;
+    letter-spacing:.04em;
+    white-space:nowrap;
+}
+#accountModal #payslipList td{
+    padding:12px;
+    border-top:1px solid #e2e8f0;
+    color:#334155;
+    font-size:13px;
+    white-space:nowrap;
+}
+#accountModal > div > div > hr{
+    border:0;
+    border-top:1px solid #e2e8f0;
+    margin:20px 26px!important;
+}
+#accountModal h3{
+    color:#173f63;
+}
+#accountModal .form-group:has(#currentPassword),
+#accountModal .form-group:has(#newPassword),
+#accountModal .form-group:has(#confirmNewPassword){
+    margin-left:26px;
+    margin-right:26px;
+    margin-bottom:14px;
+}
+#accountModal #currentPassword,
+#accountModal #newPassword,
+#accountModal #confirmNewPassword{
+    background:#fff;
+}
+#accountModal .account-security-title{
+    margin:0 26px 14px;
+    font-size:19px;
+    font-weight:700;
+    color:#173f63;
+}
+#accountModal .btn-primary,
+#accountModal .btn-secondary{
+    min-height:40px;
+    border-radius:8px;
+}
+@media(max-width:760px){
+    #accountModal .modal-content{
+        width:calc(100vw - 18px);
+        max-height:calc(100vh - 18px);
+    }
+    #accountModal .modal-header{padding:18px}
+    #accountModal .account-details{
+        grid-template-columns:1fr;
+        margin-left:18px;
+        margin-right:18px;
+    }
+    #accountModal .account-payslips{
+        margin-left:18px;
+        margin-right:18px;
+    }
+    #accountModal .form-group:has(#currentPassword),
+    #accountModal .form-group:has(#newPassword),
+    #accountModal .form-group:has(#confirmNewPassword){
+        margin-left:18px;
+        margin-right:18px;
+    }
+}
+</style>
+
 </head>
 
 <body>
@@ -1551,36 +1875,49 @@
              EMPLOYEES
         ================================================== -->
 
-        <div id="employeeSection" class="section">
+        <div id="employeeSection" class="section employee-management-section">
 
-            <h2>Employee Management</h2>
+            <div class="employee-management-header">
+
+                <div class="employee-management-title">
+
+                    <h2>Employee Management</h2>
+
+                    <p>
+                        Manage employees, roles, departments, salary and workforce information.
+                    </p>
+
+                </div>
+
+                <div class="employee-management-header-actions">
+
+                    <button
+                        class="btn-primary employee-load-btn"
+                        onclick="loadEmployees(1)"
+                        type="button"
+                    >
+                        Refresh Employees
+                    </button>
+
+                    <button
+                        class="btn-success employee-add-btn"
+                        onclick="openEmployeeModal()"
+                        type="button"
+                    >
+                        + Add Employee
+                    </button>
+
+                </div>
+
+            </div>
 
             <div
                 id="employeeMessage"
                 class="message"
             ></div>
 
-            <div class="top-controls">
 
-                <button
-                    class="btn-primary"
-                    onclick="loadEmployees(1)"
-                    type="button"
-                >
-                    Load Employees
-                </button>
-
-                <button
-                    class="btn-success"
-                    onclick="openEmployeeModal()"
-                    type="button"
-                >
-                    + Add Employee
-                </button>
-
-            </div>
-
-            <div class="employee-filter-grid">
+<div class="employee-filter-grid">
 
                 <div class="form-group">
                     <label for="employeeSearch">Search</label>
@@ -4482,72 +4819,86 @@
             );
 
         if (!container) {
+            console.error(
+                "employeeTableContainer not found."
+            );
             return;
         }
 
-        if (!employeeList.length) {
-            container.innerHTML = `
+        if (!Array.isArray(employeeList) || !employeeList.length) {
+
+            container.innerHTML =
+                `
                 <div class="employee-empty-state">
-                    <div class="employee-empty-icon">👥</div>
-                    <div class="employee-empty-title">No employees found</div>
-                    <div class="employee-empty-text">
-                        Try changing your filters or search criteria.
+
+                    <div class="employee-empty-icon">
+                        👥
                     </div>
+
+                    <h3>No Employees Found</h3>
+
+                    <p>
+                        No employees match the selected filters.
+                    </p>
+
                 </div>
-            `;
+                `;
+
             return;
+
         }
 
+
+        /*
+         * Keep the complete employee list available to the
+         * Employee Profile / Payslip module.
+         */
         if (
             window.EmployeeProfileModule &&
             typeof window.EmployeeProfileModule.setEmployees === "function"
         ) {
-            window.EmployeeProfileModule.setEmployees(employeeList);
+            window.EmployeeProfileModule.setEmployees(
+                employeeList
+            );
         }
 
-        const formatJoiningDate = (value) => {
-            if (!value) return "-";
-
-            const date = new Date(value);
-
-            if (Number.isNaN(date.getTime())) {
-                return escapeHtml(String(value));
-            }
-
-            return date.toLocaleDateString("en-IN", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric"
-            });
-        };
 
         let html = `
-            <div class="employee-table-shell employee-table-clean">
-                <table class="employee-clean-table">
+
+            <div class="employee-table-wrapper">
+
+                <table class="employee-management-table">
+
                     <thead>
+
                         <tr>
-                            <th class="employee-id-col">ID</th>
+
+                            <th>ID</th>
                             <th>Employee</th>
+                            <th>Email</th>
                             <th>Job Role</th>
                             <th>Department</th>
-                            <th class="salary-col">Salary</th>
+                            <th>Salary</th>
                             <th>Status</th>
                             <th>Joining Date</th>
-                            <th class="payslip-col">Payslip</th>
-                            <th class="actions-col">Actions</th>
+                            <th>Payslip</th>
+                            <th>Actions</th>
+
                         </tr>
+
                     </thead>
 
                     <tbody>
         `;
 
+
         employeeList.forEach(employee => {
 
             const departmentName =
-                employee.department &&
-                employee.department.name
+                employee.department
                     ? employee.department.name
                     : "Not Assigned";
+
 
             const jobRole =
                 employee.profile_metadata &&
@@ -4555,118 +4906,196 @@
                     ? employee.profile_metadata.job_role
                     : "-";
 
-            const status =
-                employee.status || "Active";
 
-            const statusClass =
-                getEmployeeStatusClass(status);
+            const employeeStatus =
+                employee.status ||
+                "Active";
 
-            const safeEmployeeName =
-                employee.name
-                    ? escapeHtml(employee.name)
-                    : "-";
 
-            const safeEmployeeEmail =
-                employee.email
-                    ? escapeHtml(employee.email)
-                    : "-";
+            let joiningDate =
+                employee.joining_date ||
+                "-";
+
+
+            /*
+             * Format the joining date for display only.
+             * The backend value is not changed.
+             */
+            if (
+                joiningDate &&
+                joiningDate !== "-"
+            ) {
+
+                const date =
+                    new Date(joiningDate);
+
+                if (
+                    !Number.isNaN(
+                        date.getTime()
+                    )
+                ) {
+
+                    joiningDate =
+                        date.toLocaleDateString(
+                            "en-IN",
+                            {
+                                day: "2-digit",
+                                month: "short",
+                                year: "numeric"
+                            }
+                        );
+
+                }
+
+            }
+
+
+            const normalizedStatus =
+                String(
+                    employeeStatus
+                ).toLowerCase();
+
+
+            let statusClass =
+                "status-active";
+
+
+            if (
+                normalizedStatus === "inactive" ||
+                normalizedStatus === "terminated" ||
+                normalizedStatus === "resigned"
+            ) {
+
+                statusClass =
+                    "status-inactive";
+
+            }
+            else if (
+                normalizedStatus === "on leave" ||
+                normalizedStatus === "leave"
+            ) {
+
+                statusClass =
+                    "status-leave";
+
+            }
+
 
             html += `
+
                 <tr>
 
-                    <td class="employee-id-col">
+                    <td class="employee-id-cell">
                         ${employee.id}
                     </td>
+
 
                     <td class="employee-name-cell">
 
                         <div class="employee-name">
-                            ${safeEmployeeName}
+                            ${escapeHtml(
+                                employee.name
+                            ) || "-"}
                         </div>
 
-                        <div
-                            class="employee-email-inline"
-                            title="${safeEmployeeEmail === "-" ? "" : safeEmployeeEmail}"
+                    </td>
+
+
+                    <td class="employee-email-cell">
+                        ${escapeHtml(
+                            employee.email
+                        ) || "-"}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            jobRole
+                        )}
+                    </td>
+
+
+                    <td>
+                        ${escapeHtml(
+                            departmentName
+                        )}
+                    </td>
+
+
+                    <td class="employee-salary-cell">
+                        ${formatSalary(
+                            employee.salary
+                        )}
+                    </td>
+
+
+                    <td>
+
+                        <span
+                            class="employee-status ${statusClass}"
                         >
-                            ${safeEmployeeEmail}
-                        </div>
+                            ${escapeHtml(
+                                employeeStatus
+                            )}
+                        </span>
 
                     </td>
+
 
                     <td>
-                        <span class="job-role-text">
-                            ${escapeHtml(jobRole)}
-                        </span>
+                        ${escapeHtml(
+                            joiningDate
+                        )}
                     </td>
 
-                    <td>
-                        <span class="department-text">
-                            ${escapeHtml(departmentName)}
-                        </span>
-                    </td>
 
-                    <td class="salary-col salary-value">
-                        ${formatSalary(employee.salary)}
-                    </td>
-
-                    <td>
-                        <span class="employee-status ${statusClass}">
-                            ${escapeHtml(status)}
-                        </span>
-                    </td>
-
-                    <td class="joining-date-cell">
-                        ${formatJoiningDate(employee.joining_date)}
-                    </td>
-
-                    <td class="payslip-col">
+                    <td class="payslip-cell">
 
                         <button
                             type="button"
-                            class="employee-payslip-btn"
+                            class="table-btn payslip-btn"
                             onclick="EmployeeProfileModule.viewEmployeePayslip(${employee.id})"
-                            title="View payslips"
                         >
                             View
                         </button>
 
                     </td>
 
-                    <td class="actions-col">
+
+                    <td class="employee-actions-cell">
 
                         <div class="employee-action-buttons">
 
                             <button
-                                type="button"
-                                class="employee-action-btn employee-profile-btn"
+                                class="table-btn profile-btn"
                                 onclick="openEmployeeProfile(${employee.id})"
-                                title="View employee profile"
+                                type="button"
                             >
                                 Profile
                             </button>
 
+
                             <button
-                                type="button"
-                                class="employee-action-btn employee-edit-btn"
+                                class="table-btn edit-btn"
                                 onclick="editEmployee(${employee.id})"
-                                title="Edit employee"
+                                type="button"
                             >
                                 Edit
                             </button>
+
 
                             ${
                                 currentUser &&
                                 currentUser.role === "Admin"
                                     ? `
                                         <button
-                                            type="button"
-                                            class="employee-action-btn employee-delete-btn"
+                                            class="table-btn delete-btn"
                                             onclick="deleteEmployee(${employee.id})"
-                                            title="Delete employee"
+                                            type="button"
                                         >
                                             Delete
                                         </button>
-                                    `
+                                      `
                                     : ""
                             }
 
@@ -4675,17 +5104,28 @@
                     </td>
 
                 </tr>
+
             `;
+
         });
 
+
         html += `
+
                     </tbody>
+
                 </table>
+
             </div>
+
         `;
 
-        container.innerHTML = html;
+
+        container.innerHTML =
+            html;
+
     }
+
 
     function getEmployeeStatusClass(status) {
 
